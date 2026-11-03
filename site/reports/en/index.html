@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Reports · CheepSeek Radar</title>
+<meta name="description" content="CheepSeek Radar research reports: model plan pricing, quotas and the per-100M-token basis.">
+<meta name="color-scheme" content="light dark">
+<script>
+/* 主题偏好预读：localStorage csr_theme（light/dark/system）> system；越早执行越少闪烁 */
+  (function () {
+    var v = "system";
+    try { v = localStorage.getItem("csr_theme") || "system"; } catch (e) {}
+    if (v !== "light" && v !== "dark" && v !== "system") v = "system";
+    var eff = v === "system" ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : v;
+    var h = document.documentElement;
+    h.setAttribute("data-theme", eff);
+    h.setAttribute("data-theme-pref", v);
+    h.style.colorScheme = eff;
+    if (v === "system") h.setAttribute("data-theme-sys", matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  })();
+</script>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../assets/report.css">
+</head>
+<body>
+<header class="site-head">
+  <div class="site-head-inner">
+    <a class="brand" href="../../">CheepSeek Radar<span>AI Coding-Plan Value</span></a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="../../#top">Ranking</a>
+      <a href="../../#dataSheet">Data</a>
+      <a href="./" class="on" aria-current="page">Reports</a>
+      <a class="lang-link" href="../">中文</a>
+      <span class="theme-sw">
+      <button type="button" id="themeBtn" title="主题：浅色 → 深色 → 跟随系统 / Theme: light → dark → system" aria-label="切换主题 / Switch theme">☀</button>
+    </span>
+    </nav>
+  </div>
+</header>
+<main class="page">
+  <section class="masthead">
+    <div class="masthead-main">
+      <p class="kicker">CheepSeek Radar · Research Notes</p>
+      <h1>Research Reports</h1>
+      <p class="lede">Tear down model-plan pricing: quota, peak/valley, caching and rate limits — normalized to one comparable basis.</p>
+      
+    </div>
+    <div class="masthead-side">
+      <div><span class="num">0</span><span class="lab">Reports</span></div>
+      <div><span class="num">—</span><span class="lab">Latest</span></div>
+    </div>
+  </section>
+  <section class="issue-index">
+    <div class="index-label"><span>Index</span><span>By date</span></div>
+    <div class="empty"><p>No published reports yet.</p><p class="empty-sub">Add Markdown under reports/posts/ and set status to published, then rebuild.</p></div>
+  </section>
+</main>
+<footer class="site-foot">
+  <div class="site-foot-inner">
+    <span>© 2026 CheepSeek Radar · Original research reports, all rights reserved</span>
+    <span>Prices and quotas are as of each article's snapshot date; current data in the <a href="../../#dataSheet">data sheet</a>.</span>
+    <span>Sharing the original link is welcome; reproduction or adaptation requires authorization.</span>
+  </div>
+</footer>
+<script>
+  (function () {
+    "use strict";
+    function applyTheme() {
+      var pref = "system";
+      try { pref = localStorage.getItem("csr_theme") || "system"; } catch (e) {}
+      if (pref !== "light" && pref !== "dark" && pref !== "system") pref = "system";
+      var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+      var eff = pref === "system" ? (mq && mq.matches ? "dark" : "light") : pref;
+      var h = document.documentElement;
+      h.setAttribute("data-theme", eff);
+      h.setAttribute("data-theme-pref", pref);
+      h.style.colorScheme = eff;
+      var b = document.getElementById("themeBtn");
+      if (b) b.textContent = (pref === "dark") ? "☾" : (pref === "system" ? "◐" : "☀");
+    }
+    var tb = document.getElementById("themeBtn");
+    if (tb) tb.addEventListener("click", function () {
+      var pref = "system";
+      try { pref = localStorage.getItem("csr_theme") || "system"; } catch (e) {}
+      if (pref !== "light" && pref !== "dark" && pref !== "system") pref = "system";
+      var next = (pref === "light") ? "dark" : (pref === "dark" ? "system" : "light");
+      try { localStorage.setItem("csr_theme", next); } catch (err) {}
+      applyTheme();
+    });
+    var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    if (mq) {
+      var onChange = function () { applyTheme(); };
+      if (mq.addEventListener) mq.addEventListener("change", onChange);
+      else if (mq.addListener) mq.addListener(onChange);
+    }
+    applyTheme();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-labelledby="chartTitle chartDesc">
+  <title id="chartTitle">DeepSeek Coding Plan: effective price per 100M tokens</title>
+  <desc id="chartDesc">2026-11-02 snapshot, cache/standard input/model output 95/4/1, peak:valley 6:4, FX 6.65. Command Code GOAT and OpenCode Go's DeepSeek V4.1 Flash tie for lowest at about 1.58 yuan per 100M tokens; Ollama Pro about 5.27 yuan; Official API about 15.84 yuan.</desc>
+
+  <rect width="1200" height="640" fill="#faf8f2"/>
+
+  <text x="44" y="62" font-family="'Source Han Serif SC','Noto Serif SC','Songti SC',Georgia,serif" font-size="34" font-weight="700" fill="#221f19">DeepSeek Coding Plan: effective price per 100M tokens</text>
+  <text x="44" y="94" font-family="'Source Han Sans SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="17" fill="#7b7361">2026-11-02 snapshot · Unit: ¥ per 100M tokens · cache/input/output 95/4/1 · peak:valley 6:4 · FX 6.65</text>
+
+  <g font-family="'Source Han Sans SC','Noto Sans SC','Microsoft YaHei',sans-serif">
+    <rect x="868" y="44" width="12" height="12" fill="#7d5c2c"/>
+    <text x="888" y="55" font-size="14" fill="#7b7361">Subscription channels</text>
+    <rect x="976" y="44" width="12" height="12" fill="#b9ad98"/>
+    <text x="996" y="55" font-size="14" fill="#7b7361">Official baseline</text>
+  </g>
+
+  <g stroke="#d6cbb3" stroke-width="1">
+    <line x1="360" y1="150" x2="360" y2="550"/>
+    <line x1="581" y1="150" x2="581" y2="550"/>
+    <line x1="802" y1="150" x2="802" y2="550"/>
+    <line x1="1023" y1="150" x2="1023" y2="550"/>
+  </g>
+  <g font-family="'Source Han Sans SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="13" fill="#9a9284" text-anchor="middle">
+    <text x="360" y="142">0</text>
+    <text x="581" y="142">5</text>
+    <text x="802" y="142">10</text>
+    <text x="1023" y="142">15</text>
+  </g>
+
+  <g font-family="'Source Han Sans SC','Noto Sans SC','Microsoft YaHei',sans-serif">
+    <!-- 1 Command Code -->
+    <text x="44" y="222" font-size="20" font-weight="700" fill="#221f19">Command Code · GOAT</text>
+    <text x="44" y="246" font-size="14" fill="#7b7361">DeepSeek V4.1 Flash · $10 / $100</text>
+    <rect x="360" y="204" width="70" height="30" fill="#7d5c2c"/>
+    <text x="442" y="225" font-size="19" font-weight="700" fill="#7d5c2c">1.58</text>
+
+    <!-- 2 OpenCode -->
+    <text x="44" y="322" font-size="20" font-weight="700" fill="#221f19">OpenCode · Go</text>
+    <text x="44" y="346" font-size="14" fill="#7b7361">DeepSeek V4.1 Flash · $10 / $100</text>
+    <rect x="360" y="304" width="70" height="30" fill="#7d5c2c"/>
+    <text x="442" y="325" font-size="19" font-weight="700" fill="#7d5c2c">1.58</text>
+
+    <!-- 3 Ollama -->
+    <text x="44" y="422" font-size="20" font-weight="700" fill="#221f19">Ollama · Pro</text>
+    <text x="44" y="446" font-size="14" fill="#7b7361">DeepSeek V4.1 Flash · $20 / $60 credits</text>
+    <rect x="360" y="404" width="233" height="30" fill="#7d5c2c"/>
+    <text x="605" y="425" font-size="19" font-weight="700" fill="#7d5c2c">5.27</text>
+
+    <!-- 4 Official API -->
+    <text x="44" y="522" font-size="20" font-weight="700" fill="#221f19">Official API</text>
+    <text x="44" y="546" font-size="14" fill="#7b7361">Pay-as-you-go · official top-up baseline</text>
+    <rect x="360" y="504" width="700" height="30" fill="#b9ad98"/>
+    <text x="1072" y="525" font-size="19" font-weight="700" fill="#7b7361">15.84</text>
+  </g>
+
+  <line x1="44" y1="568" x2="1156" y2="568" stroke="#d6cbb3"/>
+  <g font-family="'Source Han Sans SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="12.5" fill="#9a9284">
+    <text x="44" y="594">Note: subscription channels are converted on an effective-monthly-fee basis, i.e. pay-as-you-go per-100M price × (monthly fee ÷ monthly quota); the official API is computed directly in CNY and converted at 6.65.</text>
+    <text x="44" y="616">Whether OC's $100 quota includes the 4× promotion remains unverified; CC's page does not explicitly label 1017. Figures reflect the 2026-11-02 snapshot only.</text>
+  </g>
+</svg>

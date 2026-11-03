@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>研究报告 · CheepSeek Radar</title>
+<meta name="description" content="CheepSeek Radar 的研究报告：模型套餐价格、订阅额度与每亿 token 口径。">
+<meta name="color-scheme" content="light dark">
+<script>
+/* 主题偏好预读：localStorage csr_theme（light/dark/system）> system；越早执行越少闪烁 */
+  (function () {
+    var v = "system";
+    try { v = localStorage.getItem("csr_theme") || "system"; } catch (e) {}
+    if (v !== "light" && v !== "dark" && v !== "system") v = "system";
+    var eff = v === "system" ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : v;
+    var h = document.documentElement;
+    h.setAttribute("data-theme", eff);
+    h.setAttribute("data-theme-pref", v);
+    h.style.colorScheme = eff;
+    if (v === "system") h.setAttribute("data-theme-sys", matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  })();
+</script>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="assets/report.css">
+</head>
+<body>
+<header class="site-head">
+  <div class="site-head-inner">
+    <a class="brand" href="../">CheepSeek Radar<span>模型套餐性价比</span></a>
+    <nav class="site-nav" aria-label="主导航">
+      <a href="../#top">榜单</a>
+      <a href="../#dataSheet">数据台</a>
+      <a href="./" class="on" aria-current="page">报告</a>
+      <a class="lang-link" href="en/">EN</a>
+      <span class="theme-sw">
+      <button type="button" id="themeBtn" title="主题：浅色 → 深色 → 跟随系统 / Theme: light → dark → system" aria-label="切换主题 / Switch theme">☀</button>
+    </span>
+    </nav>
+  </div>
+</header>
+<main class="page">
+  <section class="masthead">
+    <div class="masthead-main">
+      <p class="kicker">CheepSeek Radar · Research Notes</p>
+      <h1>研究报告</h1>
+      <p class="lede">把模型套餐的价格拆开看：额度、峰谷、缓存与窗口限制，最后都落到同一个可比较的口径。</p>
+      
+    </div>
+    <div class="masthead-side">
+      <div><span class="num">0</span><span class="lab">篇报告</span></div>
+      <div><span class="num">—</span><span class="lab">最新发表</span></div>
+    </div>
+  </section>
+  <section class="issue-index">
+    <div class="index-label"><span>目录</span><span>按发布日期</span></div>
+    <div class="empty"><p>暂无已发布报告。</p><p class="empty-sub">在 reports/posts/ 新建 Markdown，把 status 改为 published 后重新构建。</p></div>
+  </section>
+</main>
+<footer class="site-foot">
+  <div class="site-foot-inner">
+    <span>© 2026 CheepSeek Radar · 原创研究报告，保留所有权利</span>
+    <span>价格与额度以标注快照日期为准；当前数据见 <a href="../#dataSheet">数据台</a>。</span>
+    <span>欢迎分享原文链接；未经授权不得转载或改编。</span>
+  </div>
+</footer>
+<script>
+  (function () {
+    "use strict";
+    function applyTheme() {
+      var pref = "system";
+      try { pref = localStorage.getItem("csr_theme") || "system"; } catch (e) {}
+      if (pref !== "light" && pref !== "dark" && pref !== "system") pref = "system";
+      var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+      var eff = pref === "system" ? (mq && mq.matches ? "dark" : "light") : pref;
+      var h = document.documentElement;
+      h.setAttribute("data-theme", eff);
+      h.setAttribute("data-theme-pref", pref);
+      h.style.colorScheme = eff;
+      var b = document.getElementById("themeBtn");
+      if (b) b.textContent = (pref === "dark") ? "☾" : (pref === "system" ? "◐" : "☀");
+    }
+    var tb = document.getElementById("themeBtn");
+    if (tb) tb.addEventListener("click", function () {
+      var pref = "system";
+      try { pref = localStorage.getItem("csr_theme") || "system"; } catch (e) {}
+      if (pref !== "light" && pref !== "dark" && pref !== "system") pref = "system";
+      var next = (pref === "light") ? "dark" : (pref === "dark" ? "system" : "light");
+      try { localStorage.setItem("csr_theme", next); } catch (err) {}
+      applyTheme();
+    });
+    var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    if (mq) {
+      var onChange = function () { applyTheme(); };
+      if (mq.addEventListener) mq.addEventListener("change", onChange);
+      else if (mq.addListener) mq.addListener(onChange);
+    }
+    applyTheme();
+  })();
+</script>
+</body>
+</html>

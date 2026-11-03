@@ -1,0 +1,3455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<title>CheepSeek Radar · 模型套餐性价比监控台</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script>
+/* 语言偏好：localStorage > 浏览器语言（zh* → 中文，否则英文）；越早执行越少闪烁 */
+  (function () {
+    try {
+      var v = localStorage.getItem("csr_lang");
+      if (v !== "zh" && v !== "en") v = ((navigator.language || "en").toLowerCase().indexOf("zh") === 0) ? "zh" : "en";
+      window.__LANG = v;
+    } catch (e) { window.__LANG = "zh"; }
+  })();
+</script>
+<script>
+/* 主题偏好预读：localStorage csr_theme（light/dark/system）> system；越早执行越少闪烁 */
+  (function () {
+    var v = "system";
+    try { v = localStorage.getItem("csr_theme") || "system"; } catch (e) {}
+    if (v !== "light" && v !== "dark" && v !== "system") v = "system";
+    var eff = v === "system" ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : v;
+    var h = document.documentElement;
+    h.setAttribute("data-theme", eff);
+    h.setAttribute("data-theme-pref", v);
+    h.style.colorScheme = eff;
+    if (v === "system") h.setAttribute("data-theme-sys", matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  })();
+</script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --serif: Georgia, "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", serif;
+    --serif-bold: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", Georgia, serif;
+    --sans: "Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    /* 色系：青铜 BRONZE（暖纸底 + 双强调分工：青铜=价格/冠军，石板青=促销/次级标记） */
+    --ink: #221f19;          /* 正文 */
+    --ink-2: #3f3930;        /* 次级正文 */
+    --muted: #7b7361;        /* 次要信息 */
+    --muted-2: #9a9284;      /* 更淡的次要信息 */
+    --line: #d6cbb3;         /* 主分隔线 */
+    --line-soft: #e7dfd0;    /* 浅分隔线 */
+    --line-deep: #c2b69f;    /* 深分隔线 */
+    --paper: #faf8f2;        /* 纸底 */
+    --band: #f3efe4;         /* 交替带 / 面板底 */
+    --warm: #efe4cd;         /* 冠军格底 */
+    --bar: #e9e2d1;          /* 进度槽 */
+    --accent: #7d5c2c;       /* 主强调：价格 / 冠军 / 主 CTA */
+    --accent-hi: #8f6a34;    /* 主强调悬停 */
+    --accent2: #3f5d55;      /* 副强调：促销 / 徽章 / 次级标记 */
+    --up: #9d4632;           /* 涨 */
+    --down: #4a6b46;         /* 跌 */
+    --page-bg: #e4dfd2;      /* 页面外底色 */
+    --warm-hover: #f5ead6;   /* 冠军格悬停 */
+    --row-hover: #f0e9da;    /* 表格行悬停 */
+    /* 语义 token（主题系统）：card=格子/输入框/表头等表面色；on-ink=--ink 底上的文字；
+       on-accent=--accent/--accent2 底上的文字；mask=modal 遮罩 */
+    --card: #ffffff;
+    --on-ink: #ffffff;
+    --on-accent: #ffffff;
+    --mask: rgba(26, 26, 26, .35);
+    color-scheme: light;
+  }
+  /* ===== 深色主题：暖炭底 + 亮铜金（与浅色同一套衬线排版与版式） ===== */
+  html[data-theme="dark"] {
+    --page-bg: #171410;
+    --paper: #211d16;
+    --card: #2a251d;
+    --band: #292319;
+    --warm: #33291a;
+    --warm-hover: #3d3220;
+    --bar: #3b3425;
+    --line: #453d2e;
+    --line-soft: #352f24;
+    --line-deep: #574d38;
+    --ink: #ece5d6;
+    --ink-2: #d5cbb8;
+    --muted: #a89d87;
+    --muted-2: #857b68;
+    --accent: #c9a25e;
+    --accent-hi: #d9b674;
+    --accent2: #8fb3a8;
+    --up: #d47b62;
+    --down: #8fbc85;
+    --row-hover: #2c261c;
+    --on-ink: #1c1913;
+    --on-accent: #241d10;
+    --mask: rgba(0, 0, 0, .55);
+    color-scheme: dark;
+  }
+  /* 导出卡钉浅色：深色下导出 PNG 仍渲染浅色版式（captureCard 克隆卡元素时无
+     html[data-theme]，必须用类选择器在元素上重声明变量——克隆环境依然命中） */
+  .hero-card, .c-card {
+    --page-bg: #e4dfd2;
+    --paper: #faf8f2;
+    --card: #ffffff;
+    --band: #f3efe4;
+    --warm: #efe4cd;
+    --warm-hover: #f5ead6;
+    --bar: #e9e2d1;
+    --line: #d6cbb3;
+    --line-soft: #e7dfd0;
+    --line-deep: #c2b69f;
+    --ink: #221f19;
+    --ink-2: #3f3930;
+    --muted: #7b7361;
+    --muted-2: #9a9284;
+    --accent: #7d5c2c;
+    --accent-hi: #8f6a34;
+    --accent2: #3f5d55;
+    --up: #9d4632;
+    --down: #4a6b46;
+    --row-hover: #f0e9da;
+    --on-ink: #ffffff;
+    --on-accent: #ffffff;
+    --mask: rgba(26, 26, 26, .35);
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--serif); color: var(--ink);
+    background: var(--page-bg); -webkit-font-smoothing: antialiased;
+    display: flex; flex-direction: column;
+  }
+  .wrap { width: min(1760px, 96vw); margin: 0 auto; padding: 24px 16px 20px; flex: 1; display: flex; flex-direction: column; }
+
+  /* ===== 头页（封面：TOP 榜 + 速览；与内页同风格，单页直落） ===== */
+  /* 顶部品牌条：吸顶，极窄 */
+  .h-brand {
+    position: sticky; top: 0; z-index: 60;
+    display: flex; align-items: center; gap: 12px;
+    height: 34px; padding: 0 12px; margin-bottom: 12px;
+    background: var(--paper); border: 1px solid var(--line);
+    font-family: var(--sans); font-size: 11px; letter-spacing: 2.2px;
+    color: var(--muted); text-transform: uppercase;
+  }
+  .h-brand-meta { margin-left: auto; letter-spacing: .5px; text-transform: none; font-size: 11.5px; color: var(--muted-2); }
+  .h-brand-name { white-space: nowrap; }
+  .h-nav {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    display: flex; align-items: center; gap: 15px;
+    letter-spacing: 1px; z-index: 2;
+  }
+  .h-nav a {
+    color: var(--muted); text-decoration: none; padding: 3px 0;
+    border-bottom: 1px solid transparent;
+  }
+  .h-nav a:hover { color: var(--accent); }
+  .h-nav a.on { color: var(--accent); border-bottom-color: var(--accent); }
+  .hero-sheet { padding: 30px 26px 20px; margin-bottom: 20px; }
+  .h-brand-save {
+    font-family: var(--sans); font-size: 11px; letter-spacing: .5px;
+    background: none; border: 1px solid var(--line); color: var(--muted);
+    padding: 2px 9px; margin-left: 10px; cursor: pointer;
+  }
+  .h-brand-save:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ===== 语言 / 主题切换控件 ===== */
+  .h-tools { display: inline-flex; gap: 6px; align-items: center; margin-left: 10px; }
+  .sw-group {
+    display: inline-flex; align-items: center;
+    border: 1px solid var(--line); background: var(--paper);
+  }
+  .sw-group button {
+    border: none; background: none; font-family: var(--sans); font-size: 10.5px; letter-spacing: .5px;
+    color: var(--muted); padding: 2px 8px; cursor: pointer; line-height: 1.6;
+    min-width: 36px; text-align: center;
+  }
+  .sw-group button + button { border-left: 1px solid var(--line-soft); }
+  .sw-group button.on { background: var(--accent); color: var(--on-accent); }
+  .sw-group button:not(.on):hover { color: var(--accent); }
+
+  /* ===== 头页 3:4 竖版导出（同版式的响应式重排：480×640，导出 1440×1920） ===== */
+  .hero-card { width: 480px; height: 640px; background: var(--paper); border: 1px solid var(--line);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.18); display: flex; flex-direction: column; overflow: hidden;
+    font-family: var(--serif); color: var(--ink); }
+  .hc-head { padding: 16px 22px 10px; text-align: center; border-bottom: 2px solid var(--accent); }
+  .hc-cat { font-family: var(--sans); font-size: 8.5px; letter-spacing: 2.6px; color: var(--muted-2); text-transform: uppercase; }
+  .hc-title { font-family: var(--serif-bold); font-weight: 900; font-size: 27px; letter-spacing: 1.5px; line-height: 1.2; margin-top: 6px; }
+  .hc-sub { font-family: var(--serif); font-style: italic; font-size: 9.5px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+  .hc-body { flex: 1; padding: 11px 16px 6px; display: flex; flex-direction: column; gap: 0; }
+  /* 让网格与算法带之间的剩余空间自然分配，避免底部大片空白 */
+  .hc-grid { margin-bottom: auto; }
+  .hc-chips { display: flex; justify-content: center; gap: 5px; margin-bottom: 9px; flex-wrap: wrap; }
+  .hc-chips span { font-family: var(--sans); font-size: 8px; border: 1px solid var(--line); color: var(--muted); padding: 2px 7px; }
+  .hc-chips span.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+  /* 网格：3 列 × 2 行；① 跨两行、② 跨两列、③④ 各一列——四格正好铺满，不留空列 */
+  .hc-grid { display: grid; grid-template-columns: 1.42fr 1fr 1fr; grid-template-rows: 1fr 0.92fr; gap: 6px; flex: none; height: 252px; }
+  .hc-cell { position: relative; border: 1px solid var(--line); background: #fff; padding: 7px 8px; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+  .hc-cap {
+    align-self: flex-end; font-family: var(--sans); font-size: 8.5px; font-weight: 600; color: var(--ink-2);
+    line-height: 1.3; white-space: nowrap; letter-spacing: .1px; text-align: right;
+  }
+  .hc-c1 { grid-column: 1; grid-row: 1 / 3; background: var(--warm); border-left: 3px solid var(--accent); padding: 10px 11px; }
+  .hc-c2 { grid-column: 2 / 4; grid-row: 1; }
+  .hc-c3 { grid-column: 2; grid-row: 2; }
+  .hc-c4 { grid-column: 3; grid-row: 2; border-style: dashed; background: none; }
+  /* ③④ 小格：字号与间距收紧，避免在窄格内换行 */
+  .hc-c3 .hc-ft, .hc-c4 .hc-ft { gap: 2px 6px; }
+  .hc-c3 .hc-ft i, .hc-c4 .hc-ft i { font-size: 6.5px; }
+  .hc-c3 .hc-ft i b, .hc-c4 .hc-ft i b { font-size: 7px; }
+  .hc-top { display: flex; flex-direction: column; gap: 1px; }
+  .hc-pf { font-family: var(--serif-bold); font-weight: 900; font-size: 14px; line-height: 1.2; min-width: 0; }
+  .hc-c1 .hc-pf { font-size: 20px; }
+  .hc-c2 .hc-pf { font-size: 15px; }
+  .hc-c4 .hc-pf { color: var(--muted); }
+  .hc-pl { font-family: var(--sans); font-size: 6.5px; letter-spacing: 1px; color: var(--muted-2); margin-top: 2px; text-transform: uppercase; }
+  .hc-pr { font-family: var(--serif-bold); font-weight: 900; color: var(--accent); line-height: 1.05; margin-top: auto; padding-top: 7px; }
+  .hc-c1 .hc-pr { font-size: 33px; }
+  .hc-c2 .hc-pr { font-size: 20px; }
+  .hc-c3 .hc-pr, .hc-c4 .hc-pr { font-size: 14px; }
+  .hc-c4 .hc-pr { color: var(--muted); }
+  .hc-pr .alt { font-family: var(--sans); font-size: 7.5px; font-weight: 400; color: var(--muted-2); margin-left: 4px; }
+  .hc-pr .u { font-family: var(--sans); font-size: 7px; font-weight: 400; color: var(--muted-2); margin-left: 2px; }
+  .hc-bar { height: 4px; background: var(--bar); margin-top: 6px; }
+  .hc-c1 .hc-bar { height: 5px; margin-top: 8px; }
+  .hc-bar i { display: block; height: 100%; background: var(--accent); }
+  .hc-c4 .hc-bar i { background: var(--muted-2); }
+  .hc-tg { margin-top: 5px; display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .hc-pm { font-family: var(--sans); font-size: 6.5px; color: #fff; background: var(--accent2); padding: 1px 4px; }
+  .hc-mu { font-family: var(--sans); font-size: 7px; color: var(--muted-2); }
+  .hc-ft { margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 3px 8px; }
+  .hc-ft i { font-style: normal; font-family: var(--sans); font-size: 7px; color: var(--muted-2); }
+  .hc-ft i b { font-family: var(--serif-bold); font-weight: 700; color: var(--ink-2); font-size: 7.5px; }
+  .hc-algo { border: 1px solid var(--line); background: var(--band); padding: 7px 9px; margin-top: 9px; flex: none; }
+  .hc-algo .hd { font-family: var(--sans); font-size: 7px; letter-spacing: 1.4px; color: var(--muted-2); text-transform: uppercase; padding-bottom: 5px; border-bottom: 1px solid var(--line); }
+  .hc-algo .kvs { display: flex; gap: 0; margin-top: 6px; }
+  .hc-algo .kv { flex: 1 1 0; min-width: 0; padding: 0 7px; border-right: 1px solid var(--line); }
+  .hc-algo .kv:first-child { padding-left: 0; }
+  .hc-algo .kv:last-child { border-right: none; padding-right: 0; }
+  .hc-algo .kv dt { font-family: var(--sans); font-size: 6.5px; letter-spacing: .8px; color: var(--muted-2); text-transform: uppercase; }
+  .hc-algo .kv dd { font-family: var(--serif-bold); font-weight: 900; font-size: 10px; color: var(--ink); margin-top: 2px; line-height: 1.2; white-space: nowrap; }
+  .hc-algo .kv dd small { font-family: var(--sans); font-size: 6.5px; font-weight: 400; color: var(--muted-2); margin-left: 2px; }
+  .hc-stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line-deep); border-bottom: 1px solid var(--line-deep); margin-top: 10px; padding: 7px 0; }
+  .hc-stats .st { text-align: center; }
+  .hc-stats .st + .st { border-left: 1px solid var(--line); }
+  .hc-stats .st b { display: block; font-family: var(--serif-bold); font-size: 13px; font-weight: 900; color: var(--ink); line-height: 1.15; }
+  .hc-stats .st.mid b { color: var(--accent); }
+  .hc-stats .st i { font-style: normal; font-family: var(--sans); font-size: 6.5px; letter-spacing: .8px; color: var(--muted-2); }
+  .hc-note { font-family: var(--sans); font-size: 7px; color: var(--muted-2); line-height: 1.5; padding: 6px 0 0; }
+  .hc-foot { border-top: 1px solid var(--line); background: var(--warm); padding: 8px 22px 10px; }
+  .hc-foot .nt { font-family: var(--serif); font-style: italic; font-size: 9px; color: var(--ink-2); line-height: 1.55;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .hc-foot .sc { font-family: var(--sans); font-size: 7px; color: var(--muted-2); margin-top: 3px; }
+
+  .h-title { text-align: center; margin-bottom: 24px; }
+  .h-title h1 {
+    font-family: var(--serif-bold); font-weight: 900;
+    font-size: 46px; letter-spacing: 3px; line-height: 1.12; margin-bottom: 10px;
+  }
+  .h-sub { font-style: italic; font-size: 13.5px; color: var(--muted); line-height: 1.65; }
+
+  /* 模型筛选 chips（不是页面切换，是榜单维度） */
+  .h-chips { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .h-chip {
+    font-family: var(--sans); font-size: 12px; letter-spacing: .5px;
+    background: none; border: 1px solid var(--line); color: var(--muted);
+    padding: 6px 13px; cursor: pointer;
+  }
+  .h-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .h-chip.on { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+  .h-chip-n { margin-left: 6px; opacity: .5; font-size: 11px; }
+
+  /* 错落版式：左大块跨两行、中上横块跨两列、中下两块、右侧窄栏通高 */
+  .h-mosaic {
+    display: grid;
+    grid-template-columns: 1.55fr 1fr 1fr 0.72fr;
+    grid-template-rows: minmax(104px, auto) minmax(104px, auto);
+    gap: 10px;
+  }
+  .h-cell {
+    position: relative; border: 1px solid var(--line); background: var(--card);
+    padding: 12px 14px; cursor: pointer; min-width: 0;
+    display: flex; flex-direction: column;
+  }
+  .h-cap {
+    position: absolute; top: 10px; right: 12px; z-index: 1;
+    font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--ink-2);
+    text-align: right; line-height: 1.4; white-space: nowrap; letter-spacing: .2px;
+    background: inherit; padding-left: 6px;
+  }
+  .h-c1 .h-cap { top: 14px; right: 16px; }
+  .h-cell:hover { background: var(--band); }
+  .h-c1 { grid-column: 1; grid-row: 1 / 3; background: var(--warm); border-left: 3px solid var(--accent); padding: 16px 18px; }
+  .h-c1:hover { background: var(--warm-hover); }
+  .h-c2 { grid-column: 2 / 4; grid-row: 1; }
+  .h-c3 { grid-column: 2; grid-row: 2; }
+  .h-c4 { grid-column: 3; grid-row: 2; }
+  /* 官方直充基准格：虚线边框、灰字——是"锚点"而非竞争者 */
+  .h-off { border-style: dashed; background: none; }
+  .h-off:hover { background: var(--band); }
+  .h-off .h-price { color: var(--muted-2); }
+  .h-off .h-bar i { background: var(--line-deep); }
+
+  /* ── 字号层级（2026-09-12 可读性重排）───────────────────────────────
+     原则：压缩式重映射——底部抬到可读下限，顶部不动，保留层级感。
+     头页在 1:1 屏幕上阅读：决策相关信息（额度/窗口/抓取日/算法口径）
+     不低于 12px；纯标签类上行文字（uppercase + 字距）下限 11px。
+     最大:最小 由 50:8 = 6.3× 收敛为 50:11 = 4.5×，层级更紧、更耐看。 */
+  .h-plat { font-family: var(--serif-bold); font-weight: 900; font-size: 18px; line-height: 1.2; padding-right: 112px; }
+  .h-c1 .h-plat { font-size: 27px; letter-spacing: .5px; }
+  .h-c2 .h-plat { font-size: 20px; }
+  .h-plan { font-family: var(--sans); font-size: 11px; letter-spacing: 1.1px; color: var(--muted-2); margin-top: 5px; text-transform: uppercase; }
+  .h-price { font-family: var(--serif-bold); font-weight: 900; color: var(--accent); line-height: 1.05; margin-top: auto; padding-top: 12px; }
+  .h-c1 .h-price { font-size: 50px; }
+  .h-c2 .h-price { font-size: 32px; }
+  .h-c3 .h-price, .h-c4 .h-price { font-size: 21px; }
+  .h-price .alt { font-family: var(--sans); font-size: 12px; font-weight: 400; color: var(--muted-2); margin-left: 6px; }
+  .h-c1 .h-price .alt { font-size: 13px; }
+  .h-unit { font-family: var(--sans); font-size: 11.5px; font-weight: 400; color: var(--muted-2); margin-left: 4px; letter-spacing: .4px; }
+  .h-bar { height: 5px; background: var(--bar); margin-top: 9px; overflow: hidden; }
+  .h-c1 .h-bar { height: 7px; margin-top: 13px; }
+  .h-bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; }
+  .h-tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; min-height: 20px; }
+  .h-promo { font-family: var(--sans); font-size: 11px; line-height: 1.5; letter-spacing: .3px; color: var(--on-accent); background: var(--accent2); padding: 1px 7px; }
+  .h-mult { font-family: var(--sans); font-size: 11.5px; color: var(--muted-2); }
+  /* 决策相关事实行（额度 / 窗口 / 计价方式）：给每格补一条"值不值"的实据，不堆装饰 */
+  .h-facts { margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 5px 13px; }
+  .h-c1 .h-facts { margin-top: 9px; padding-top: 8px; gap: 6px 16px; }
+  .h-facts i { font-style: normal; font-family: var(--sans); font-size: 12px; color: var(--muted-2); letter-spacing: .2px; }
+  .h-c1 .h-facts i { font-size: 12.5px; }
+  .h-facts i b { font-family: var(--serif-bold); font-weight: 700; color: var(--ink-2); font-size: 12.5px; }
+  .h-c1 .h-facts i b { font-size: 13px; }
+  .h-cta { font-family: var(--sans); font-size: 11.5px; letter-spacing: .9px; color: var(--accent); margin-top: 10px; opacity: 0; }
+  .h-c1:hover .h-cta { opacity: 1; }
+  /* 冠军格：价格与买得到多少并列呈现（横排，用足高度而不留空） */
+  .h-c1-row { display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap; margin-top: auto; padding-top: 12px; }
+  .h-c1-row .h-price { margin-top: 0; padding-top: 0; }
+  .h-c1-kv { padding-bottom: 4px; }
+  .h-c1-kv dt { font-family: var(--sans); font-size: 11px; letter-spacing: 1.1px; color: var(--muted-2); text-transform: uppercase; }
+  .h-c1-kv dd { font-family: var(--serif-bold); font-weight: 900; font-size: 19px; color: var(--ink); line-height: 1.25; margin-top: 2px; }
+  .h-c1-kv dd small { font-family: var(--sans); font-size: 11.5px; font-weight: 400; color: var(--muted-2); margin-left: 3px; }
+
+  /* 右侧速览栏（通高） */
+  .h-stats {
+    grid-column: 4; grid-row: 1 / 3;
+    border: 1px solid var(--line); background: var(--band);
+    padding: 12px 14px; display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .h-stat + .h-stat { border-top: 1px solid var(--line-soft); }
+  .h-stat { padding: 6px 0; }
+  .h-stat-n { font-family: var(--serif-bold); font-weight: 900; font-size: 21px; line-height: 1.1; color: var(--ink); }
+  .h-stat-n.accent { color: var(--accent); }
+  .h-stat-l { font-family: var(--sans); font-size: 11px; letter-spacing: 1.2px; color: var(--muted-2); text-transform: uppercase; margin-top: 3px; }
+
+  /* 算法口径带：头页底部，说明"每亿价怎么算出来的"（信息而非装饰） */
+  .h-algo { border: 1px solid var(--line); background: var(--band); padding: 11px 13px; margin-bottom: 8px; }
+  .h-algo-lead { display: flex; align-items: baseline; gap: 10px; padding-bottom: 9px; border-bottom: 1px solid var(--line); }
+  .h-algo-tag {
+    font-family: var(--sans); font-size: 11px; letter-spacing: 1.3px; text-transform: uppercase;
+    color: var(--muted-2); border-right: 1px solid var(--line); padding-right: 10px; flex: none;
+  }
+  .h-algo-txt { font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+  .h-algo-txt b { color: var(--ink-2); font-weight: 600; }
+  .h-algo-cells { display: flex; flex-wrap: wrap; gap: 12px 0; margin-top: 10px; }
+  .h-algo-cells .kv { flex: 1 1 0; min-width: 118px; padding: 0 12px; border-right: 1px solid var(--line); }
+  .h-algo-cells .kv:first-child { padding-left: 0; }
+  .h-algo-cells .kv:last-child { border-right: none; padding-right: 0; }
+  .h-algo-cells .kv dt { font-family: var(--sans); font-size: 11px; letter-spacing: 1.1px; color: var(--muted-2); text-transform: uppercase; }
+  .h-algo-cells .kv dd { font-family: var(--serif-bold); font-weight: 900; font-size: 14px; color: var(--ink); margin-top: 3px; line-height: 1.3; }
+  .h-algo-cells .kv dd small { font-family: var(--sans); font-size: 11px; font-weight: 400; color: var(--muted-2); margin-left: 3px; }
+  .h-algo-cells .kv dd em { font-style: normal; color: var(--accent); }
+
+  .h-more { text-align: right; font-family: var(--sans); font-size: 12px; color: var(--muted-2); margin: 8px 2px 12px; min-height: 15px; }
+  .h-note {
+    display: flex; align-items: center; gap: 10px; min-height: 32px;
+    padding: 7px 12px; border: 1px solid var(--line);
+    font-family: var(--sans); font-size: 12.5px; color: var(--muted); margin-bottom: 8px;
+  }
+  .h-note:last-child { margin-bottom: 0; }
+  .h-note-tag {
+    font-size: 11px; letter-spacing: 1.3px; text-transform: uppercase; color: var(--muted-2);
+    border-right: 1px solid var(--line); padding-right: 10px; flex: none;
+  }
+
+  /* 首屏错峰入场（仅首次渲染；尊重减弱动效偏好） */
+  @keyframes hIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes hBarGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .hero-sheet.h-anim .h-cell, .hero-sheet.h-anim .h-stats { animation: hIn .42s cubic-bezier(.22,.61,.36,1) both; }
+  /* 价格条生长：宽度由 JS 直接写入目标值（不依赖 rAF，任何环境都能正确渲染），动画用纯 CSS transform */
+  .hero-sheet.h-anim .h-bar i { animation: hBarGrow .62s cubic-bezier(.22,.61,.36,1) both; }
+  .h-anim .h-c1 { animation-delay: 180ms; }
+  .h-anim .h-c2 { animation-delay: 60ms; }
+  .h-anim .h-c3 { animation-delay: 120ms; }
+  .h-anim .h-c4 { animation-delay: 150ms; }
+  .h-anim .h-stats { animation-delay: 30ms; }
+  .h-anim .h-c1 .h-bar i { animation-delay: 300ms; }
+  .h-anim .h-c2 .h-bar i { animation-delay: 180ms; }
+  .h-anim .h-c3 .h-bar i { animation-delay: 240ms; }
+  .h-anim .h-c4 .h-bar i { animation-delay: 270ms; }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-sheet.h-anim .h-cell, .hero-sheet.h-anim .h-stats, .hero-sheet.h-anim .h-bar i { animation: none; }
+  }
+
+  /* 窄屏回退：单列堆叠（保持可读） */
+  @media (max-width: 1040px) {
+    .h-mosaic { grid-template-columns: 1fr 1fr; grid-template-rows: none; }
+    .h-c1 { grid-column: 1 / 3; grid-row: auto; }
+    .h-c2 { grid-column: 1 / 3; grid-row: auto; }
+    .h-c3 { grid-column: 1; grid-row: auto; }
+    .h-c4 { grid-column: 2; grid-row: auto; }
+    .h-stats { grid-column: 1 / 3; grid-row: auto; }
+    .h-title h1 { font-size: 34px; }
+    .h-c1 .h-price { font-size: 38px; }
+  }
+  @media (max-width: 760px) {
+    .h-brand { height: auto; min-height: 34px; flex-wrap: wrap; padding: 7px 10px; row-gap: 5px; }
+    .h-brand-sub { display: none; }
+    .h-nav { position: static; transform: none; order: 4; width: 100%; margin-left: 0; gap: 18px; justify-content: center; }
+    .h-brand-meta { margin-left: auto; }
+    .h-brand-save { margin-left: 0; }
+    .h-cap { position: static; align-self: flex-end; background: none; padding: 0 0 2px; }
+    .h-c1 .h-cap { position: static; }
+    .h-plat { padding-right: 0; }
+  }
+
+  /* ===== 页眉 ===== */
+  /* 数据台画布内的标题区（与头页统一：标题也在画布内） */
+  .sheet-head { text-align: center; padding: 4px 0 0; margin-bottom: 16px; }
+  .sheet-head .category { margin-bottom: 10px; }
+  .sheet-head h1 { font-size: 30px; margin-bottom: 7px; }
+  .sheet-head .subtitle { font-size: 13px; }
+  .sheet-head .rule { margin: 14px 0 0; }
+  .category {
+    font-family: var(--sans); font-size: 11px; letter-spacing: 2.6px; text-transform: uppercase;
+    color: var(--muted-2); text-align: center; margin-bottom: 8px;
+  }
+  h1 {
+    font-family: var(--serif-bold); font-weight: 900;
+    font-size: 34px; line-height: 1.2; text-align: center; margin-bottom: 6px;
+  }
+  .subtitle { font-style: italic; font-size: 14px; color: var(--ink-2); text-align: center; line-height: 1.55; }
+  .rule { border: none; border-top: 1px solid var(--line-deep); margin: 14px 0; }
+
+  /* ===== 面板纸卡 ===== */
+  .sheet {
+    background-color: var(--paper);
+    box-shadow: 0 2px 14px rgba(0,0,0,0.18);
+    padding: 18px 20px 12px;
+    flex: 1; display: flex; flex-direction: column;
+  }
+
+  /* ===== 统计条 ===== */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line-deep); padding: 10px 0; margin-bottom: 14px; }
+  .stat { text-align: center; padding: 0 8px; }
+  .stat + .stat { border-left: 1px solid var(--line-soft); }
+  .stat-num { font-family: var(--serif-bold); font-size: 23px; font-weight: 900; line-height: 1.15; margin-bottom: 2px; color: var(--accent); }
+  .stat-num.plain { color: var(--ink); }
+  .stat-label { font-size: 11px; color: var(--muted); line-height: 1.5; font-family: var(--sans); letter-spacing: 0.5px; }
+
+  /* ===== 工具条 ===== */
+  .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .btn-primary {
+    font-family: var(--sans); font-size: 11.5px; letter-spacing: 1px;
+    background: var(--accent); color: var(--on-accent); border: none; padding: 7px 18px; cursor: pointer;
+  }
+  .btn-primary:hover { background: var(--accent-hi); }
+  .btn-ghost {
+    font-family: var(--sans); font-size: 11.5px; letter-spacing: 0.5px;
+    background: var(--card); color: var(--ink); border: 1px solid var(--line); padding: 6px 14px; cursor: pointer;
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-ghost.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .btn-ghost.on:hover { color: var(--on-accent); }
+  .sel {
+    font-family: var(--sans); font-size: 11px; color: var(--muted);
+    background: var(--card); border: 1px solid var(--line); padding: 6px 8px; cursor: pointer;
+  }
+  .sel:hover { border-color: var(--accent); }
+  .toolbar .spacer { flex: 1; }
+
+  /* ===== 多选下拉组件 ===== */
+  .ms { position: relative; display: inline-block; }
+  .ms-btn { min-width: 96px; text-align: left; }
+  .ms-btn .caret { float: right; color: var(--muted-2); }
+  .ms-menu {
+    position: absolute; top: calc(100% + 3px); left: 0; z-index: 90;
+    background: var(--paper); border: 1px solid var(--line);
+    box-shadow: 0 6px 22px rgba(0,0,0,0.18);
+    min-width: 190px; max-height: 260px; overflow-y: auto; padding: 5px 0;
+  }
+  .ms-menu[hidden] { display: none; }
+  .ms-opt {
+    display: flex; align-items: center; gap: 7px;
+    font-family: var(--sans); font-size: 11.5px; color: var(--ink);
+    padding: 5px 12px; cursor: pointer; white-space: nowrap;
+  }
+  .ms-opt:hover { background: var(--band); }
+  .ms-opt input { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; margin: 0; }
+  .ms-opt .cnt { margin-left: auto; color: var(--muted-2); font-size: 11px; }
+  .ms-all { border-bottom: 1px solid var(--line); margin-bottom: 4px; padding-bottom: 6px; }
+  .ms-empty { padding: 8px 12px; font-family: var(--sans); font-size: 11.5px; color: var(--muted-2); }
+
+  /* ===== 算法参数区 ===== */
+  .control-box {
+    border: 1px solid var(--line); background: var(--band);
+    padding: 10px 14px; margin: 0 0 10px;
+  }
+  .algo-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+  .algo-label {
+    font-family: var(--sans); font-size: 10.5px; letter-spacing: 1.8px; color: var(--muted);
+    text-transform: uppercase; padding-bottom: 7px;
+  }
+  .algo-row label {
+    display: flex; align-items: baseline; gap: 5px;
+    font-family: var(--sans); font-size: 11.5px; color: var(--muted);
+  }
+  .algo-row input[type="number"] {
+    width: 54px; border: 1px solid var(--line); background: var(--card);
+    font-family: var(--sans); font-size: 12.5px; color: var(--ink); padding: 5px 6px;
+  }
+  .algo-row select {
+    border: 1px solid var(--line); background: var(--card);
+    font-family: var(--sans); font-size: 11.5px; color: var(--ink); padding: 5px 6px; cursor: pointer;
+  }
+  .algo-row .dim2 { font-size: 10.5px; color: var(--muted-2); }
+  .algo-row .comp-total {
+    font-family: var(--sans); font-size: 10.5px; color: var(--muted-2);
+    padding-bottom: 7px; white-space: nowrap;
+  }
+  .algo-row .comp-total b { color: var(--ink-2); font-weight: 600; }
+  .algo-row input[type="number"]:focus { outline: none; border-color: var(--accent); }
+  .algo-row input[type="text"] {
+    width: 118px; border: 1px solid var(--line); background: var(--card);
+    font-family: var(--sans); font-size: 12px; color: var(--ink); padding: 5px 8px;
+  }
+  .algo-row .sep { width: 1px; align-self: stretch; background: var(--line); }
+  .algo-row .btn-ghost { padding: 5px 12px; font-size: 10.5px; }
+  #tplSelect { font-family: var(--sans); font-size: 11.5px; border: 1px solid var(--line); background: var(--card); color: var(--ink); padding: 5px 8px; cursor: pointer; }
+
+  /* ===== 管理表格（衬线正文/右对齐数值/斑马纹/大写表头） ===== */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); }
+  table.data { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 1520px; }
+  table.data thead th {
+    font-family: var(--sans); font-size: 11px; letter-spacing: .9px;
+    color: var(--muted); font-weight: 600; padding: 9px 8px;
+    border-bottom: 2px solid var(--ink); text-align: right; text-transform: uppercase;
+    white-space: nowrap; background: var(--card);
+  }
+  table.data thead th:first-child { text-align: left; }
+  table.data thead th.l { text-align: left; }
+  table.data thead th.sortable { cursor: pointer; user-select: none; }
+  table.data thead th.sortable:hover { color: var(--accent); }
+  table.data thead th .arrow { font-size: 10px; margin-left: 3px; color: var(--accent); }
+  table.data td { font-size: 12.5px; padding: 8px 9px; text-align: right; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+  table.data td:first-child { text-align: left; }
+  table.data td.l { text-align: left; }
+  /* 窗口限制列：长文本允许换行，避免溢出挤压相邻列；促销列同理（英文促销文本较长） */
+  table.data td.tdw { white-space: normal; line-height: 1.55; font-size: 12px; }
+  table.data td.promo { white-space: normal; line-height: 1.5; }
+  table.data tbody tr.alt td { background: var(--band); }
+  table.data tbody tr:hover td { background: var(--row-hover); }
+  /* 整行可点击（查看条目图文卡）：手型提示，避免误认为纯文本行 */
+  table.data tbody tr { cursor: pointer; }
+  table.data tbody tr td.op a { cursor: pointer; }
+  table.data .mono { font-family: var(--serif-bold); font-weight: 700; }
+  table.data .fee { color: var(--accent); font-weight: 700; }
+  table.data .promo { color: var(--accent2); font-style: italic; font-size: 11.5px; }
+  table.data .pctup { color: var(--up); font-weight: 700; font-size: 11px; }
+  table.data .pctdown { color: var(--down); font-weight: 700; font-size: 11px; }
+  table.data .eq { color: var(--muted-2); font-size: 11px; }
+  table.data .op a {
+    font-family: var(--sans); font-size: 11.5px; color: var(--accent);
+    text-decoration: underline; cursor: pointer; margin-left: 8px;
+  }
+  table.data .op a.del { color: var(--up); }
+  /* 平台名 → 官网跳转（hover 反馈 + 点击新窗口打开） */
+  table.data .plat-link {
+    color: inherit; text-decoration: none;
+    border-bottom: 1px dotted var(--line); cursor: pointer;
+  }
+  table.data .plat-link:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  table.data .plat-link .ext { font-size: 10px; color: var(--muted-2); margin-left: 3px; font-family: var(--sans); }
+  table.data .plat-link:hover .ext { color: var(--accent); }
+  .price3 { font-size: 11px; }
+  .price3 b { font-weight: 700; }
+
+  /* 价格列 hover 弹层（完整价格矩阵：谷/峰） */
+  .price-cell { position: relative; }
+  .price-tip {
+    position: absolute; z-index: 50; left: 0; top: 100%;
+    background: var(--paper); border: 1px solid var(--line);
+    box-shadow: 0 6px 22px rgba(0,0,0,0.18);
+    padding: 8px 12px; min-width: 250px; display: none;
+    font-family: var(--sans); font-size: 11.5px; text-align: left; line-height: 1.8;
+  }
+  .price-cell:hover .price-tip { display: block; }
+  /* 最后一行：弹窗向上弹，避免撑出容器垂直滚动导致晃动 */
+  .price-cell.up .price-tip { top: auto; bottom: 100%; margin-bottom: 4px; }
+  .tip-row { white-space: nowrap; }
+  .tip-row b { color: var(--accent); }
+  .tip-row .dim { color: var(--muted-2); font-size: 10.5px; }
+
+  /* 变化列：条目多时收起为一行摘要，悬停展示完整浮窗（与价格列同款交互）
+     右对齐锚定，避免靠右的列把浮窗顶出表格容器 */
+  .chg-cell { position: relative; }
+  .chg-brief { white-space: nowrap; }
+  .chg-era { font-family: var(--sans); font-size: 11px; letter-spacing: .4px; color: var(--muted-2); margin-right: 4px; }
+  .chg-tip .chg-base { display: block; margin-bottom: 2px; font-size: 11px; color: var(--muted-2); }
+  .chg-tip {
+    position: absolute; z-index: 50; right: 0; left: auto; top: 100%;
+    background: var(--paper); border: 1px solid var(--line);
+    box-shadow: 0 6px 22px rgba(0,0,0,0.18);
+    padding: 8px 12px; min-width: 200px; display: none;
+    font-family: var(--sans); font-size: 11.5px; text-align: left; line-height: 1.9;
+  }
+  .chg-tip > span { display: block; white-space: nowrap; }
+  .chg-cell:hover .chg-tip { display: block; }
+  /* 最后几行：浮窗向上弹，避免撑出容器底部导致滚动 */
+  .chg-cell.up .chg-tip { top: auto; bottom: 100%; margin-bottom: 4px; }
+
+  /* ===== 空状态 ===== */
+  .empty { text-align: center; padding: 46px 0; color: var(--muted-2); font-size: 13px; line-height: 2; }
+
+  /* ===== 底栏 ===== */
+  .foot { margin-top: auto; padding-top: 10px; font-family: var(--sans); font-size: 11px; color: var(--muted-2); text-align: center; line-height: 1.8; }
+  .foot .byebye {
+    font-family: var(--sans); font-size: 10.5px; color: var(--muted-2); background: none;
+    border: 1px solid var(--line); padding: 2px 9px; margin-left: 8px; cursor: pointer;
+    letter-spacing: 0.5px; vertical-align: 1px;
+  }
+  .foot .byebye:hover { color: var(--up); border-color: var(--up); }
+  .stopped {
+    display: flex; align-items: center; justify-content: center; height: 100vh;
+    font-family: var(--serif); color: var(--muted); font-size: 15px; text-align: center; line-height: 2;
+  }
+
+  /* ===== Modal ===== */
+  .modal-mask {
+    position: fixed; inset: 0; z-index: 100;
+    background: var(--mask);
+    display: flex; justify-content: center;
+    overflow-y: auto; padding: 24px 0;
+  }
+  .modal-mask[hidden] { display: none; }
+  .modal-card {
+    width: 640px; max-width: 94vw;
+    background: var(--paper); border: 1px solid var(--line);
+    box-shadow: 0 10px 34px rgba(0,0,0,0.3);
+    padding: 18px 22px;
+    margin: auto;   /* 不超高时垂直居中;超高时退化为可滚动不裁内容 */
+  }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .modal-title { font-family: var(--serif-bold); font-size: 17px; font-weight: 900; }
+  .modal-x { background: none; border: none; font-size: 15px; color: var(--muted-2); cursor: pointer; padding: 2px 8px; line-height: 1; }
+  .modal-x:hover { color: var(--accent); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+  .fld { display: flex; flex-direction: column; }
+  .fld.full { grid-column: 1 / -1; }
+  .fld label {
+    font-family: var(--sans); font-size: 10.5px; letter-spacing: 1.3px;
+    color: var(--muted); margin-bottom: 4px; text-transform: uppercase;
+  }
+  .fld label .req { color: var(--up); }
+  .fld input, .fld select, .fld textarea {
+    font-family: var(--sans); font-size: 12.5px; color: var(--ink);
+    border: 1px solid var(--line); background: var(--card); padding: 6px 8px;
+  }
+  .fld input:focus, .fld select:focus, .fld textarea:focus { outline: none; border-color: var(--accent); }
+  .fld textarea { resize: vertical; min-height: 54px; }
+  .fld .hint { font-size: 10.5px; color: var(--muted-2); font-style: italic; margin-top: 3px; }
+  .modal-foot { display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--line); padding-top: 14px; margin-top: 16px; }
+  #modalStatus { font-size: 11.5px; color: var(--muted); }
+
+  /* ===== 图文卡 · 卡内参数条（只影响当前卡，不改全局） ===== */
+  .card-params {
+    border: 1px solid var(--line); background: var(--band);
+    padding: 8px 12px; margin: 0 0 10px;
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 10px;
+    font-family: var(--sans);
+  }
+  .card-params .cp-label {
+    font-size: 9.5px; letter-spacing: 1.6px; color: var(--muted-2);
+    text-transform: uppercase; padding-bottom: 6px;
+  }
+  .card-params label {
+    display: flex; align-items: baseline; gap: 4px;
+    font-size: 10.5px; color: var(--muted);
+  }
+  .card-params input[type="number"] {
+    width: 44px; border: 1px solid var(--line); background: var(--card);
+    font-family: var(--sans); font-size: 11px; color: var(--ink); padding: 3px 5px;
+  }
+  .card-params select {
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    font-family: var(--sans); font-size: 10.5px; padding: 3px 5px; cursor: pointer;
+  }
+  .card-params .cp-total { font-size: 9.5px; color: var(--muted-2); padding-bottom: 6px; white-space: nowrap; }
+  .card-params .cp-total b { color: var(--ink-2); font-weight: 600; }
+  .card-params .cp-reset { margin-left: 6px; padding: 4px 9px; font-size: 10px; }
+
+  /* ===== 变化提示小注 ===== */
+  .tip { font-size: 10.5px; color: var(--muted-2); font-style: italic; margin: 4px 0 10px; line-height: 1.65; }
+  /* ===== 图文卡（3:4 竖版，数据驱动） ===== */
+  .card-stage { display: flex; justify-content: center; padding: 4px 0 2px; overflow: hidden; }
+  .card-fit { width: 480px; display: flex; justify-content: center; transform-origin: top center; }
+  .c-card {
+    width: 480px; height: 640px; background: var(--paper);
+    border: 1px solid var(--line); box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+    display: flex; flex-direction: column; flex: none;
+    font-family: var(--serif); color: var(--ink);
+  }
+  .c-head { padding: 15px 24px 10px; text-align: center; border-bottom: 2px solid var(--accent); }
+  .c-head .cat { font-family: var(--sans); font-size: 9px; letter-spacing: 3px; color: var(--muted-2); text-transform: uppercase; }
+  .c-head .model { font-family: var(--serif-bold); font-size: 26px; font-weight: 900; margin-top: 5px; letter-spacing: 0.5px; }
+  .c-head .meta { font-family: var(--sans); font-size: 10.5px; letter-spacing: 1.5px; color: var(--muted); margin-top: 5px; }
+  .c-head .meta b { color: var(--accent); font-weight: 700; }
+  .c-head .meta .cpromo { display: inline-block; font-size: 8px; letter-spacing: 1px; color: #fff; background: var(--accent2); padding: 1px 7px; margin-left: 4px; vertical-align: 1px; }
+
+  .c-main { flex: 1; min-height: 0; padding: 10px 24px 3px; display: flex; flex-direction: column; }
+  .c-sec { font-family: var(--sans); font-size: 9px; letter-spacing: 2.5px; color: var(--muted-2); text-transform: uppercase; margin-bottom: 3px; }
+  .c-sec .rt { float: right; color: var(--muted-2); letter-spacing: 0; font-size: 8px; }
+  .c-price { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; }
+  .c-price th { font-family: var(--sans); font-size: 8.5px; letter-spacing: 1px; color: var(--muted-2); font-weight: 600; padding: 3px 6px; border-bottom: 1px solid var(--ink); text-align: center; }
+  .c-price th:first-child { text-align: center; }
+  .c-price td { font-size: 12px; padding: 2.5px 6px; text-align: center; border-bottom: 1px solid var(--line-soft); font-family: var(--serif-bold); }
+  .c-price td:first-child { text-align: center; font-family: var(--sans); font-size: 9px; color: var(--muted); font-weight: 400; }
+  /* 双币种：副币种小字（主值随面板币种，副值自动换算并带符号）；单卡矩阵 inline 紧凑、双卡列窄 block 换行 */
+  .c-price td .alt { display: block; font-size: 8px; color: var(--muted-2); font-family: var(--sans); font-weight: 400; line-height: 1.3; }
+  .c-card:not(.c-dual) .c-price td .alt { display: inline; margin-left: 3px; font-size: 7.5px; line-height: inherit; }
+  .c-algo .num .alt { font-size: 9px; color: var(--muted-2); font-family: var(--sans); font-weight: 400; margin-left: 5px; }
+  .c-subs .n .alt { display: block; font-size: 8px; color: var(--muted-2); font-family: var(--sans); font-weight: 400; line-height: 1.3; }
+  .c-price tr.alt td { background: var(--band); }
+  .c-note9 { font-size: 8px; color: var(--muted-2); font-family: var(--sans); margin: 0 0 6px; line-height: 1.5; }
+  .c-algos { display: flex; flex-direction: column; gap: 7px; margin-bottom: 10px; }
+  .c-algo { border: 1px solid var(--line); background: var(--band); padding: 6px 12px; }
+  .c-algo .head { display: flex; align-items: center; justify-content: space-between; }
+  .c-algo .tag { font-family: var(--sans); font-size: 10px; color: var(--muted); }
+  .c-algo .tag b { color: var(--accent); font-size: 11px; letter-spacing: 0.5px; }
+  .c-algo .num { font-family: var(--serif-bold); font-size: 18px; font-weight: 900; color: var(--accent); line-height: 1.1; }
+  .c-algo .num .unit { font-size: 10px; color: var(--muted-2); font-family: var(--sans); font-weight: 400; margin-left: 2px; }
+  .c-algo .expl { font-size: 7.5px; color: var(--muted-2); font-family: var(--sans); line-height: 1.5; margin-top: 3px; min-height: 26px; }
+  .c-algo .expl b { color: var(--muted); font-weight: 600; }
+  .c-algo .sub { font-size: 8px; color: var(--muted-2); font-family: var(--sans); margin-top: 1px; min-height: 12px; }
+  .c-algo .sub b { color: var(--ink); }
+  .c-info { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
+  .c-info .row { border: 1px solid var(--line); padding: 5px 12px; display: flex; justify-content: space-between; align-items: baseline; font-family: var(--sans); font-size: 9.5px; color: var(--muted); min-height: 28px; }
+  .c-info .row .v { font-family: var(--serif-bold); font-size: 11.5px; font-weight: 700; color: var(--ink); text-align: right; }
+  .c-info .row .v em { font-style: normal; color: var(--accent); }
+  .c-subs { display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px solid var(--line-deep); border-bottom: 1px solid var(--line-deep); padding: 6px 0; margin-top: auto; }
+  .c-subs .cell { text-align: center; min-height: 40px; display: flex; flex-direction: column; justify-content: flex-start; gap: 2px; }
+  .c-subs .l { order: 0; }
+  .c-subs .n { order: 1; }
+  .c-subs .n2 { order: 2; font-family: var(--serif-bold); font-size: 10px; font-weight: 700; color: var(--ink); line-height: 1.3; }
+  .c-subs .cell + .cell { border-left: 1px solid var(--line-soft); }
+  .c-subs .n { font-family: var(--serif-bold); font-size: 13px; font-weight: 900; }
+  .c-subs .d { order: 2; font-size: 7.5px; color: var(--muted-2); font-family: var(--sans); }
+  .c-subs .l { font-size: 8px; color: var(--muted-2); font-family: var(--sans); margin-top: 2px; line-height: 1.4; }
+  .c-foot { border-top: 1px solid var(--line); background: var(--warm); padding: 6px 24px 6px; }
+  .c-foot .note { font-size: 9.5px; color: var(--ink-2); font-style: italic; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .c-foot .src { font-family: var(--sans); font-size: 8px; color: var(--muted-2); margin-top: 2px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* 双模型卡：左右两列 */
+  .c-dual .c-main { display: grid; grid-template-columns: 1fr 1fr; padding: 11px 13px 8px; gap: 0; }
+  .c-dual .col { display: flex; flex-direction: column; padding: 2px 6px 0; min-width: 0; }
+  .c-dual .col + .col { border-left: 1px solid var(--line); padding-left: 6px; }
+  .c-dual .col-head { text-align: center; padding-bottom: 6px; margin-bottom: 8px; border-bottom: 1px solid var(--line-deep); min-height: 44px; display: flex; flex-direction: column; justify-content: center; }
+  .c-dual .col-head .plat { font-family: var(--serif-bold); font-size: 15px; font-weight: 900; }
+  .c-dual .col-head .plan { font-family: var(--sans); font-size: 8.5px; letter-spacing: 2px; color: var(--muted-2); text-transform: uppercase; margin-top: 2px; }
+  .c-dual .col-head .promo { display: inline-block; font-family: var(--sans); font-size: 7.5px; letter-spacing: 1px; color: #fff; background: var(--accent2); padding: 1px 7px; margin-left: 4px; vertical-align: 1px; }
+  .c-dual .col.better .col-head { border-bottom-color: var(--accent); }
+  .c-dual .col.better .col-head .plat { color: var(--accent); }
+  .c-dual .col.better .col-head .plan::after { content: " ✓ 更优"; color: var(--accent); font-size: 8px; letter-spacing: 0; }
+  .c-dual .c-sec { font-size: 8px; }
+  /* 双卡列对齐根基：矩阵固定总高（表头 + 最多 3 数据行），行数不足的列下方留白，
+     保证左右列的"算法情况"等后续模块 y 起点一致（行数随渠道峰谷数据而变，不能靠内容自然对齐） */
+  .c-dual .c-price { height: 62px; }
+  .c-dual .c-price td { font-size: 9.5px; padding: 2.5px; text-align: center; height: 17px; white-space: nowrap; }
+  .c-dual .c-price tr.pad td { border-bottom: none; }   /* 补位占位行：无边框纯占位（双卡列对齐用） */
+  .c-dual .c-price th { font-size: 7px; padding: 2px; text-align: center; }
+  .c-dual .c-price td .alt { display: inline; font-size: 6.5px; margin-left: 2px; }
+  .c-dual .c-algo .num .alt { font-size: 7px; margin-left: 3px; }
+  .c-dual .c-subs .n .alt { font-size: 7px; }
+  .c-dual .c-algo { padding: 5px 8px; min-height: 58px; }
+  .c-dual .c-algo .row2 { display: flex; justify-content: space-between; align-items: baseline; margin-top: 3px; }
+  .c-dual .c-algo .row2 .cap { font-size: 7.5px; color: var(--muted-2); font-family: var(--sans); }
+  .c-dual .c-algo .tag { font-size: 8px; }
+  .c-dual .c-algo .tag b { font-size: 8.5px; }
+  .c-dual .c-algo .num { font-size: 15px; }
+  .c-dual .c-algo .num .unit { font-size: 8px; }
+  .c-dual .c-algo .sub { font-size: 7px; line-height: 1.5; }
+  .c-dual .c-subs { grid-template-columns: 1fr 1fr; gap: 2px 6px; min-height: 84px; align-content: center; margin-top: auto; }
+  .c-dual .c-subs .cell { text-align: left; align-items: flex-start; min-height: 40px; }
+  .c-dual .c-subs .cell { text-align: left; }
+  .c-dual .c-subs .cell + .cell { border-left: none; }
+  .c-dual .c-subs .n { font-size: 10px; }
+  .c-dual .c-subs .n2 { font-size: 8.5px; }
+  .c-dual .c-subs .l { font-size: 7px; }
+
+</style>
+</head>
+<body id="top">
+<div class="wrap">
+
+  <!-- ===== 头页（封面）：TOP 榜 + 速览 ===== -->
+  <div class="h-brand">
+    <span class="h-brand-name">CheepSeek Radar<span class="h-brand-sub" data-i18n="brand.sub"> · 模型套餐性价比</span></span>
+    <nav class="h-nav" aria-label="页面导航" data-i18n-aria="nav.aria">
+      <a href="#top" class="on" data-nav="hero" data-i18n="nav.radar">榜单</a>
+      <a href="#dataSheet" data-nav="dataSheet" data-i18n="nav.data">数据台</a>
+      <a href="reports/" data-i18n="nav.reports">报告</a>
+    </nav>
+    <span class="h-brand-meta" id="hBrandMeta">—</span>
+    <span class="h-tools">
+      <span class="sw-group">
+        <button type="button" id="langBtn" title="切换语言 / Switch language" aria-label="切换语言 / Switch language">EN</button>
+      </span>
+      <span class="sw-group">
+        <button type="button" id="themeBtn" title="主题：浅色 → 深色 → 跟随系统 / Theme: light → dark → system" aria-label="切换主题 / Switch theme">☀</button>
+      </span>
+    </span>
+    <button class="h-brand-save" id="btnHeroCard" title="把本页榜单生成为 3:4 竖版图片（适合社媒发布）" data-i18n-title="ui.saveAsImageTip" data-i18n="ui.saveAsImage">存为图片</button>
+  </div>
+
+  <div class="sheet hero-sheet" id="hero">
+    <div class="h-title">
+      <h1 data-i18n="hero.title">哪家最划算</h1>
+      <p class="h-sub" data-i18n="hero.subtitle">把各渠道的计价，统一折算成「每 1 亿 Token 的实际月费」——按排名分面积，越省越靠前</p>
+    </div>
+    <div class="h-chips" id="hChips"></div>
+    <div class="h-mosaic" id="hMosaic"></div>
+    <div class="h-more" id="hMore"></div>
+    <!-- 算法口径带：讲清"每亿价怎么算出来的"（与面板参数实时联动） -->
+    <div class="h-algo">
+      <div class="h-algo-lead">
+        <span class="h-algo-tag" data-i18n="hero.algoTag">算法</span>
+        <span class="h-algo-txt" data-i18n-html="hero.algoText">每亿价 = 按下列画像折算的<b>每 1 亿 token 实际成本</b>；订阅渠道再乘「月费 ÷ 月额度」（额度是优惠，不计入成本）</span>
+      </div>
+      <div class="h-algo-cells" id="hAlgoCells"></div>
+    </div>
+    <div class="h-note"><span class="h-note-tag" data-i18n="hero.tagNow">本期</span><span id="hNote1">—</span></div>
+    <div class="h-note"><span class="h-note-tag" data-i18n="hero.tagBasis">口径</span><span id="hNote2">—</span></div>
+  </div>
+
+  <div class="sheet" id="dataSheet">
+    <div class="sheet-head">
+      <div class="category" data-i18n="ds.category">完整数据台 · 全部快照</div>
+      <h1 data-i18n="ds.title">一张表，盯住所有渠道</h1>
+      <p class="subtitle" data-i18n="ds.subtitle">快照式记录各平台 × 模型 × 套餐的价目，增删改即时落库，变化自动标色</p>
+      <hr class="rule">
+    </div>
+    <div class="stats" id="stats">
+      <div class="stat"><div class="stat-num" id="stTotal">–</div><div class="stat-label" data-i18n="ds.stat.total">快照总数</div></div>
+      <div class="stat"><div class="stat-num plain" id="stKeys">–</div><div class="stat-label" data-i18n="ds.stat.items">监测项（平台×模型×套餐）</div></div>
+      <div class="stat"><div class="stat-num plain" id="stRecent">–</div><div class="stat-label" data-i18n="ds.stat.recent">最近抓取日</div></div>
+      <div class="stat"><div class="stat-num" id="stChanged">–</div><div class="stat-label" data-i18n="ds.stat.changed">变化项</div></div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn-primary" id="btnAdd" data-i18n="ui.add">＋ 新增快照</button>
+      <div class="ms" id="msPlatform">
+        <button type="button" class="sel ms-btn" id="msPlatformBtn">全部平台<span class="caret">▾</span></button>
+        <div class="ms-menu" id="msPlatformMenu" hidden></div>
+      </div>
+      <div class="ms" id="msModel">
+        <button type="button" class="sel ms-btn" id="msModelBtn">全部模型<span class="caret">▾</span></button>
+        <div class="ms-menu" id="msModelMenu" hidden></div>
+      </div>
+      <div class="ms" id="msPlan">
+        <button type="button" class="sel ms-btn" id="msPlanBtn">全部套餐<span class="caret">▾</span></button>
+        <div class="ms-menu" id="msPlanMenu" hidden></div>
+      </div>
+      <span class="spacer"></span>
+      <button class="btn-ghost" id="btnCard" data-i18n-title="ui.compareTip" data-i18n="ui.compare">生成对比</button>
+      <button class="btn-ghost" id="btnLatest" data-i18n-title="ui.latestTip" data-i18n="ui.latest">最新情况</button>
+      <button class="btn-ghost" id="btnExport" data-i18n="ui.exportCsv">导出 CSV</button>
+      <button class="btn-ghost" id="btnRefresh" data-i18n="ui.refresh">刷新</button>
+    </div>
+
+    <div class="control-box">
+      <div class="algo-row">
+        <span class="algo-label" data-i18n="ui.profileLabel">计算画像</span>
+        <label><span data-i18n="ui.preset">预设</span>
+          <select id="tplSelect">
+            <option value="preset:default">95/4/1</option>
+            <option value="preset:realapi">97/2.5/0.5</option>
+            <option value="preset:high">98/1.6/0.4</option>
+            <option value="custom" data-i18n="ui.custom">自定义</option>
+          </select>
+        </label>
+        <label><span data-i18n="ui.cacheReads">缓存读取</span> <input type="number" id="pCachePct" min="0" max="100" step="0.1" value="95" data-i18n-title="cp.pctTitle" title="占全量 token；修改后自动补齐其余项至 100%">%</label>
+        <label><span data-i18n="ui.plainInput">普通输入</span> <input type="number" id="pInputPct" min="0" max="100" step="0.1" value="4" data-i18n-title="cp.pctTitle" title="占全量 token；修改后自动补齐其余项至 100%">%</label>
+        <label><span data-i18n="ui.output">模型输出</span> <input type="number" id="pOutputPct" min="0" max="100" step="0.1" value="1" data-i18n-title="cp.pctTitle" title="占全量 token；修改后自动补齐其余项至 100%">%</label>
+        <span class="comp-total"><span data-i18n="ui.total">合计</span> <b id="pTotal">100</b>%</span>
+        <label><span data-i18n="ui.peakShare">峰占比</span> <input type="number" id="pPeak" min="0" max="100" step="1" value="60">%<span data-i18n="ui.pvPrefix">（峰:谷 </span><span id="pPeakRatio">6:4</span><span data-i18n="ui.pvSuffix">）</span></label>
+        <label><span data-i18n="ui.currency">币种</span>
+          <select id="pCur">
+            <option value="USD">USD</option>
+            <option value="CNY">CNY</option>
+          </select>
+        </label>
+        <label><span data-i18n="ui.fx">汇率</span> <input type="number" id="pFx" min="0" step="0.0001" value="6.65"><span class="dim2" data-i18n="ui.fxHint">（CNY 显示时）</span></label>
+        <span class="sep"></span>
+        <input type="text" id="tplName" placeholder="新模板名（可选）" data-i18n-ph="ui.tplNamePh">
+        <button class="btn-ghost" id="btnTplSave" data-i18n="ui.saveTpl">保存模板</button>
+        <button class="btn-ghost" id="btnTplDel" data-i18n="ui.delTpl">删除模板</button>
+      </div>
+    </div>
+
+    <p class="tip" id="algoTip">每亿价 = 按当前算法参数折算（每 1 亿 token，随各行币种）。红色 ▲ 为该行相对上一轮快照的涨价，绿色 ▼ 为降价。</p>
+
+    <div class="table-scroll">
+      <table class="data">
+        <thead>
+          <tr>
+            <th style="width:6%" class="sortable" data-sort="captured_at"><span data-i18n="col.captured">抓取日</span><span class="arrow"></span></th>
+            <th class="l" style="width:9%" data-i18n="col.platform">平台</th>
+            <th class="l" style="width:6%" data-i18n="col.plan">套餐</th>
+            <th class="l" style="width:10.5%" data-i18n="col.model">模型</th>
+            <th style="width:5.5%" class="sortable" data-sort="fee"><span data-i18n="col.fee">月费</span><span class="arrow"></span></th>
+            <th style="width:6%" class="sortable" data-sort="quota"><span data-i18n="col.quota">月额度</span><span class="arrow"></span></th>
+            <th style="width:8%" class="sortable" data-sort="capacity"><span data-i18n="col.capacity">总额度</span><span class="arrow"></span></th>
+            <th class="l" style="width:8.5%" data-i18n="col.window">窗口限制</th>
+            <th style="width:11.5%" data-i18n="col.price">价格</th>
+            <th style="width:6.5%" class="sortable" data-sort="price100"><span data-i18n="col.per100m">每亿价</span><span class="arrow"></span></th>
+            <th style="width:8.5%" data-i18n="col.promo">促销</th>
+            <th class="l" style="width:8%" data-i18n="col.change">变化</th>
+            <th style="width:6%" data-i18n="col.actions">操作</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="emptyBox" hidden data-i18n-html="tbl.emptyHtml">尚无快照。点击右上「＋ 新增快照」录入第一条，<br>或先用命令行 <b>monitor.py add</b> 批量导入。</div>
+
+    <div class="foot"><span id="foot"></span><button class="byebye" id="btnShutdown" data-i18n-title="ui.shutdownTip" data-i18n="ui.shutdown" title="停止后台服务（下次双击「打开监控台.vbs」重新启动）">停止服务</button></div>
+  </div>
+</div>
+
+<!-- ===== 新增 / 编辑 Modal ===== -->
+<div class="modal-mask" id="modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head">
+      <span class="modal-title" id="modalTitle">新增快照</span>
+      <button class="modal-x" id="modalClose">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="fld"><label><span data-i18n="modal.f.captured">抓取日期</span><span class="req">*</span></label><input type="date" id="f_captured_at"></div>
+      <div class="fld"><label><span data-i18n="modal.f.platform">平台</span><span class="req">*</span></label><input id="f_platform" list="dlPlatform" placeholder="如 Command Code / OpenCode / Ollama" data-i18n-ph="modal.ph.platform"></div>
+      <div class="fld"><label data-i18n="modal.f.plan">套餐</label><input id="f_plan" list="dlPlan" placeholder="如 订阅$10 / Pro / 按量" data-i18n-ph="modal.ph.plan"></div>
+      <div class="fld"><label><span data-i18n="modal.f.model">模型</span><span class="req">*</span></label><input id="f_model" list="dlModel" placeholder="如 deepseek-v4.1-flash-1017" data-i18n-ph="modal.ph.model"></div>
+      <div class="fld"><label data-i18n="modal.f.fee">月费</label><input type="number" step="0.01" id="f_fee"><div class="hint" data-i18n="modal.f.feeHint">留空 = 按量无月费</div></div>
+      <div class="fld"><label data-i18n="modal.f.feeCcy">币种</label><select id="f_fee_currency"><option>USD</option><option>CNY</option></select></div>
+      <div class="fld"><label data-i18n="modal.f.quota">月额度</label><input type="number" step="0.01" id="f_quota"></div>
+      <div class="fld"><label data-i18n="modal.f.quotaCcy">额度币种</label><select id="f_quota_currency"><option>USD</option><option>CNY</option></select></div>
+      <div class="fld full"><label data-i18n="modal.f.window">窗口限制</label><input id="f_window" placeholder="如 5h $10 / 7d $18 / 月 $45" data-i18n-ph="modal.ph.window"></div>
+      <div class="fld"><label data-i18n="modal.f.inV">谷价 · 输入</label><input type="number" step="0.0001" id="f_in_v"></div>
+      <div class="fld"><label data-i18n="modal.f.cacheV">谷价 · 缓存</label><input type="number" step="0.0001" id="f_cache_v"></div>
+      <div class="fld"><label data-i18n="modal.f.outV">谷价 · 输出</label><input type="number" step="0.0001" id="f_out_v"></div>
+      <div class="fld"><label data-i18n="modal.f.inP">峰价 · 输入</label><input type="number" step="0.0001" id="f_in_p"></div>
+      <div class="fld"><label data-i18n="modal.f.cacheP">峰价 · 缓存</label><input type="number" step="0.0001" id="f_cache_p"></div>
+      <div class="fld"><label data-i18n="modal.f.outP">峰价 · 输出</label><input type="number" step="0.0001" id="f_out_p"></div>
+      <div class="fld"><label data-i18n="modal.f.ccy">价格币种</label><select id="f_currency"><option>USD</option><option>CNY</option></select><div class="hint" data-i18n="modal.f.ccyHint">每百万 token 计价币种</div></div>
+      <div class="fld"><label data-i18n="modal.f.promo">促销标注</label><input id="f_promo" placeholder="如 70% off / 8折 / 已结束" data-i18n-ph="modal.ph.promo"></div>
+      <div class="fld full"><label data-i18n="modal.f.source">来源 URL</label><input id="f_source_url" placeholder="https://…"></div>
+      <div class="fld full"><label data-i18n="modal.f.note">备注</label><textarea id="f_note" placeholder="口径说明、窗口限制、模式变化等" data-i18n-ph="modal.ph.note"></textarea></div>
+    </div>
+    <datalist id="dlPlatform"></datalist>
+    <datalist id="dlModel"></datalist>
+    <datalist id="dlPlan"></datalist>
+    <div class="modal-foot">
+      <button class="btn-primary" id="btnSave" data-i18n="ui.save">保存</button>
+      <span id="modalStatus"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 条目图文卡弹窗（点击表格行打开：该条的完整画像卡） ===== -->
+<div class="modal-mask" id="rowCardModal" hidden>
+  <div class="modal-card" style="width:560px">
+    <div class="modal-head">
+      <span class="modal-title" id="rowCardTitle">条目图文卡</span>
+      <button class="modal-x" id="rowCardClose">✕</button>
+    </div>
+    <div class="card-params" data-cp-box="row"></div>
+    <div class="card-stage" id="rowCardStage"></div>
+    <div class="modal-foot">
+      <button class="btn-primary" id="rowCardSave" data-i18n="ui.saveImg">保存为图片</button>
+      <span id="rowCardStatus"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 头页榜单 3:4 图文卡预览 ===== -->
+<div class="modal-mask" id="heroCardModal" hidden>
+  <div class="modal-card" style="width:560px">
+    <div class="modal-head">
+      <span class="modal-title" data-i18n="heroCard.title">榜单图文卡 · 3:4</span>
+      <button class="modal-x" id="heroCardClose">✕</button>
+    </div>
+    <div class="card-stage" id="heroCardStage"></div>
+    <div class="modal-foot">
+      <button class="btn-primary" id="heroCardSave" data-i18n="ui.saveImg">保存为图片</button>
+      <span id="heroCardStatus"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 生成对比卡 · 配置弹窗（同模型跨渠道） ===== -->
+<div class="modal-mask" id="cardCfgModal" hidden>
+  <div class="modal-card" style="width:560px">
+    <div class="modal-head">
+      <span class="modal-title" data-i18n="cc.title">生成渠道对比</span>
+      <button class="modal-x" id="cardCfgClose">✕</button>
+    </div>
+    <div class="form-grid" style="margin-top:12px">
+      <div class="fld full"><label><span data-i18n="cc.model">模型</span><span class="req">*</span></label>
+        <select id="cc_model"></select>
+      </div>
+      <div class="fld" id="ccDualA"><label data-i18n="cc.chanA.plat">渠道 A · 平台</label><select id="cc_platA2"></select></div>
+      <div class="fld" id="ccDualB"><label data-i18n="cc.chanA.plan">渠道 A · 套餐</label><select id="cc_planA2"></select></div>
+      <div class="fld" id="ccDualC"><label data-i18n="cc.chanB.plat">渠道 B · 平台</label><select id="cc_platB2"></select></div>
+      <div class="fld" id="ccDualD"><label data-i18n="cc.chanB.plan">渠道 B · 套餐</label><select id="cc_planB2"></select></div>
+      <div class="fld full"><label data-i18n="cc.noteLabel">底部注释（可选）</label><textarea id="cc_note" placeholder="自定义注释；留空则自动生成" data-i18n-ph="cc.notePh"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-primary" id="ccGenerate" data-i18n="cc.generate">生成对比卡</button>
+      <span id="ccStatus"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 生成图文卡 · 预览弹窗 ===== -->
+<div class="modal-mask" id="cardPrevModal" hidden>
+  <div class="modal-card" style="width:560px">
+    <div class="modal-head">
+      <span class="modal-title" data-i18n="prev.title">图文卡预览</span>
+      <button class="modal-x" id="cardPrevClose">✕</button>
+    </div>
+    <div class="card-params" data-cp-box="prev"></div>
+    <div class="card-stage" id="cardStage"></div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="cardBack" data-i18n="prev.back">← 返回修改</button>
+      <button class="btn-primary" id="cardSave" data-i18n="ui.saveImg">保存为图片</button>
+      <span id="cardSaveStatus"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var rows = [];           // 当前全量快照
+  var editingId = null;    // 编辑中的 id
+  var meta = { platforms: [], models: [], plans: [] };
+  var tpls = [];           // 已存模板
+  // 计算画像：三项 Token 占比均以「全量 token」为分母，合计 100%
+  var PRESETS = [
+    { id: "default", name: "95/4/1", cachePct: 95, inputPct: 4, outputPct: 1, peakPct: 60 },
+    { id: "realapi", name: "97/2.5/0.5", cachePct: 97, inputPct: 2.5, outputPct: 0.5, peakPct: 60 },
+    { id: "high", name: "98/1.6/0.4", cachePct: 98, inputPct: 1.6, outputPct: 0.4, peakPct: 60 }
+  ];
+  var PRESET_MAP = {};
+  for (var pi = 0; pi < PRESETS.length; pi++) PRESET_MAP[PRESETS[pi].id] = PRESETS[pi];
+  var DEFAULT_PROFILE = PRESETS[0];
+  var params = { cachePct: 95, inputPct: 4, outputPct: 1, peakPct: 60, currency: "USD", fx: 6.65 };
+  var activeProfileKey = "preset:default";
+  var sort = { key: "captured_at", dir: -1 };  // 默认抓取日倒序（最新在前）
+  var sel = { platforms: [], models: [], plans: [] };  // 多选筛选（空 = 全部）
+  var viewLatest = false;  // 「最新情况」视图：只显示每监测项最新一条
+
+  // 公共静态模式：build_public.py 注入 window.CSR_PUBLIC=true 后，面板切换为只读数据源并隐藏管理功能
+  var PUBLIC = window.CSR_PUBLIC === true;
+  if (PUBLIC) {
+    // 公共只读站点：隐藏数据维护入口（数据来自 site/data/*.json，不可写）
+    ["btnAdd", "tplName", "btnTplSave", "btnTplDel", "btnShutdown"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = "none";
+    });
+    var thOps = document.querySelector('th[data-i18n="col.actions"]');
+    if (thOps) thOps.style.display = "none";
+  }
+
+  // 导出图署名：默认产品名；改成个人 IP / 团队名即可（与卡片头部栏目行并列呈现）
+  var IMAGE_SIGNATURE = 'CheepSeek Radar';
+
+  // ================= 多语言（zh / en） =================
+  // 覆盖静态文案（data-i18n*）与 JS 渲染文案（t()/tf()）；模型 ID、平台名等专有信息不翻译。
+  var I18N = {
+    zh: {
+      "doc.title": "CheepSeek Radar · 模型套餐性价比监控台",
+      "brand.sub": " · 模型套餐性价比",
+      "nav.radar": "榜单",
+      "nav.data": "数据台",
+      "nav.reports": "报告",
+      "nav.aria": "页面导航",
+      "ui.saveAsImage": "存为图片",
+      "ui.saveAsImageTip": "把本页榜单生成为 3:4 竖版图片（适合社媒发布）",
+      "hero.title": "哪家最划算",
+      "hero.subtitle": "把各渠道的计价，统一折算成「每 1 亿 Token 的实际月费」——按排名分面积，越省越靠前",
+      "hero.algoTag": "算法",
+      "hero.algoText": "每亿价 = 按下列画像折算的<b>每 1 亿 token 实际成本</b>；订阅渠道再乘「月费 ÷ 月额度」（额度是优惠，不计入成本）",
+      "hero.tagNow": "本期",
+      "hero.tagBasis": "口径",
+      "hero.stat.platforms": "平台",
+      "hero.stat.items": "监测项",
+      "hero.stat.snapshots": "快照",
+      "hero.stat.models": "模型",
+      "col.captured": "抓取日",
+      "col.platform": "平台",
+      "col.plan": "套餐",
+      "col.model": "模型",
+      "col.fee": "月费",
+      "col.quota": "月额度",
+      "col.capacity": "总额度",
+      "col.window": "窗口限制",
+      "col.price": "价格",
+      "col.per100m": "每亿价",
+      "col.promo": "促销",
+      "col.change": "变化",
+      "col.actions": "操作",
+      "ds.category": "完整数据台 · 全部快照",
+      "ds.title": "一张表，盯住所有渠道",
+      "ds.subtitle": "快照式记录各平台 × 模型 × 套餐的价目，增删改即时落库，变化自动标色",
+      "ds.stat.total": "快照总数",
+      "ds.stat.items": "监测项（平台×模型×套餐）",
+      "ds.stat.recent": "最近抓取日",
+      "ds.stat.changed": "变化项",
+      "ui.add": "＋ 新增快照",
+      "f.platform": "平台",
+      "f.model": "模型",
+      "f.plan": "套餐",
+      "f.all": "全部",
+      "f.allX": "全部{name}",
+      "f.selected": "{name}（{n}）",
+      "f.selectAll": "全选（{name}）",
+      "f.noOptions": "无可用选项",
+      "ui.compare": "生成对比",
+      "ui.compareTip": "选择两个渠道，生成同模型跨渠道对比卡（3:4 竖版）",
+      "ui.latest": "最新情况",
+      "ui.latestTip": "一键筛选：表格只显示每个监测项最新一次抓取（再点恢复全部历史）",
+      "ui.exportCsv": "导出 CSV",
+      "ui.refresh": "刷新",
+      "ui.profileLabel": "计算画像",
+      "ui.preset": "预设",
+      "ui.cacheReads": "缓存读取",
+      "ui.plainInput": "普通输入",
+      "ui.output": "模型输出",
+      "ui.total": "合计",
+      "ui.peakShare": "峰占比",
+      "ui.currency": "币种",
+      "ui.fx": "汇率",
+      "ui.fxHint": "（CNY 显示时）",
+      "ui.tplNamePh": "新模板名（可选）",
+      "ui.saveTpl": "保存模板",
+      "ui.delTpl": "删除模板",
+      "ui.custom": "自定义",
+      "ui.peakValley": "峰:谷",
+      "tip.algo": "每亿价 = 按缓存/输入/输出 {mix}（峰谷 {pv}）{fx}。订阅渠道按实际月费口径（月费 ÷ 容量，月额度是优惠不算成本），按量渠道按价表口径。三项 token 占比按全量 token 计、合计 100%；修改一项会自动补齐其余项。红色 ▲ 为该行相对上一轮快照的涨价，绿色 ▼ 为降价。",
+      "tbl.emptyHtml": "尚无快照。点击右上「＋ 新增快照」录入第一条，<br>或先用命令行 <b>monitor.py add</b> 批量导入。",
+      "foot.summary": "共 {n} 条快照 · {m} 个监测项 · 数据源 monitor/plans.db · 每亿价按 {profile} 折算",
+      "ui.shutdown": "停止服务",
+      "ui.shutdownTip": "停止后台服务（下次双击「打开监控台.vbs」重新启动）",
+      "ui.edit": "编辑",
+      "ui.delete": "删除",
+      "row.viewCardTip": "点击查看该条目的图文卡",
+      "row.srcTip": "点击打开官网核查：{url}",
+      "cap.none": "按量无额度",
+      "unit.yi": " 亿 tokens",
+      "unit.yiShort": " 亿",
+      "unit.per100m": "/亿",
+      "chg.first": "首轮",
+      "chg.none": "无变化",
+      "chg.era": "较上代",
+      "chg.base": "对比 {model} · {date}",
+      "chg.baseEra": "较上代 · ",
+      "chg.full": "每亿价 {prev} → {cur}",
+      "chg.pctWrap": "（{m}）",
+      "plat.official": "DeepSeek 官方 API",
+      "plan.payg": "按量",
+      "hero.capTip": "按当前画像折算的月度 token 总额度",
+      "hero.baseline": " · 基准",
+      "hero.cta": "▸ 查看图文卡",
+      "hero.more": "另有 {n} 家渠道未入榜 · 完整榜单见下方数据台 ↓",
+      "hero.issue": "期号 {date}",
+      "hero.mult.tied": "并列最低",
+      "hero.mult.x": "最低价的 {m} 倍",
+      "hero.mult.vsOff": "官方直充的 1/{n}",
+      "hero.fact.quota": "月额度 <b>{v}</b>",
+      "hero.fact.payg": "按量 <b>无月费</b>",
+      "hero.fact.window": "窗口 <b>{w}</b>",
+      "hero.fact.nolimit": "限额 <b>无</b>",
+      "hero.fact.asof": "抓取 <b>{d}</b>",
+      "hero.stat.updated": "最近更新",
+      "hero.kv.breakeven": "回本点",
+      "hero.kv.breakevenVal": "月用 {n}<small>亿即划算</small>",
+      "hero.kv.commit": "订阅门槛",
+      "hero.kv.commitVal": "无<small>按量即用</small>",
+      "hero.tip.best": "当前最优「{plat}」{model} {price}/亿",
+      "hero.tip.promo": "{label}：{promo}",
+      "hero.tip.promoFallback": "促销",
+      "hero.tip.vsOff": "仅官方直充的 1/{n}",
+      "hero.tip.changed": "变化 {n} 项",
+      "hero.tip.unchanged": "价格无变化",
+      "hero.note.basis": "每亿价 = 实际月费口径 ｜ 缓存/输入/输出 {mix} · 峰谷 {pv}{fx} ｜ 价格条为对数刻度",
+      "hero.note.fx": " · 汇率 {fx}",
+      "hero.kv.peakValley": "峰谷配比",
+      "hero.kv.peakValleyUnit": "峰 : 谷",
+      "export.cat.rank": "模型套餐性价比 · 榜单",
+      "export.heroTitle": "哪家最划算",
+      "export.heroSub": "把各渠道计价统一折算成「每 1 亿 Token 的实际月费」· 越省越靠前",
+      "export.algoHead": "算法口径 · 每亿价怎么算的",
+      "export.peakValleyUnit": "峰:谷",
+      "export.stats.platforms": "平台",
+      "export.stats.items": "监测项",
+      "export.stats.updated": "最近更新",
+      "export.stats.snapshots": "快照",
+      "export.tipBest": "当前最优「{plat}」{price}/亿",
+      "export.tipSep": " ｜ ",
+      "export.footNote": "订阅渠道每亿价按实际月费口径（月费 ÷ 月额度），额度是优惠不计入成本；含促销价按官方公告预录。",
+      "export.footSrc": "数据源 monitor/plans.db ｜ 抓取 {date} ｜ 价格条为对数刻度",
+      "modal.addTitle": "新增快照",
+      "modal.editTitle": "编辑快照 #{id}",
+      "modal.f.captured": "抓取日期",
+      "modal.f.platform": "平台",
+      "modal.f.plan": "套餐",
+      "modal.f.model": "模型",
+      "modal.f.fee": "月费",
+      "modal.f.feeCcy": "币种",
+      "modal.f.quota": "月额度",
+      "modal.f.quotaCcy": "额度币种",
+      "modal.f.window": "窗口限制",
+      "modal.f.inV": "谷价 · 输入",
+      "modal.f.cacheV": "谷价 · 缓存",
+      "modal.f.outV": "谷价 · 输出",
+      "modal.f.inP": "峰价 · 输入",
+      "modal.f.cacheP": "峰价 · 缓存",
+      "modal.f.outP": "峰价 · 输出",
+      "modal.f.ccy": "价格币种",
+      "modal.f.ccyHint": "每百万 token 计价币种",
+      "modal.f.promo": "促销标注",
+      "modal.f.source": "来源 URL",
+      "modal.f.note": "备注",
+      "modal.f.feeHint": "留空 = 按量无月费",
+      "modal.ph.platform": "如 Command Code / OpenCode / Ollama",
+      "modal.ph.plan": "如 订阅$10 / Pro / 按量",
+      "modal.ph.model": "如 deepseek-v4.1-flash-1017",
+      "modal.ph.window": "如 5h $10 / 7d $18 / 月 $45",
+      "modal.ph.promo": "如 70% off / 8折 / 已结束",
+      "modal.ph.note": "口径说明、窗口限制、模式变化等",
+      "ui.save": "保存",
+      "save.required": "抓取日期 / 平台 / 模型 为必填",
+      "save.saving": "保存中…",
+      "save.ok": "已保存 ✓",
+      "save.fail": "失败：{msg}",
+      "load.fail": "加载失败：{msg}",
+      "del.confirm": "确认删除 #{id}（{info}）？",
+      "del.fail": "删除失败",
+      "tpl.saveFail": "保存失败：{msg}",
+      "tpl.builtin": "内置画像不可删除",
+      "tpl.delConfirm": "确认删除模板「{name}」？",
+      "tpl.delFail": "删除失败",
+      "cc.title": "生成渠道对比",
+      "cc.model": "模型",
+      "cc.chanA.plat": "渠道 A · 平台",
+      "cc.chanA.plan": "渠道 A · 套餐",
+      "cc.chanB.plat": "渠道 B · 平台",
+      "cc.chanB.plan": "渠道 B · 套餐",
+      "cc.noteLabel": "底部注释（可选）",
+      "cc.notePh": "自定义注释；留空则自动生成",
+      "cc.generate": "生成对比卡",
+      "cc.pickModel": "请选择模型",
+      "cc.pickModelPh": "请选择模型",
+      "cc.pickPlatPh": "请选择平台",
+      "cc.pickPlanPh": "请选择套餐",
+      "cc.pickTwo": "请选择两个渠道（平台+套餐）",
+      "cc.noSnap": "未找到渠道快照",
+      "heroCard.title": "榜单图文卡 · 3:4",
+      "prev.title": "图文卡预览",
+      "prev.back": "← 返回修改",
+      "cp.label": "计算画像",
+      "cp.preset": "预设",
+      "cp.cacheReads": "缓存读取",
+      "cp.plainInput": "普通输入",
+      "cp.output": "模型输出",
+      "cp.total": "合计",
+      "cp.peakShare": "峰占比",
+      "cp.reset": "恢复初始",
+      "cp.pctTitle": "占全量 token；修改后自动补齐其余项至 100%",
+      "card.cat.profile": "模型套餐性价比 · 模型画像",
+      "card.cat.compare": "模型套餐性价比 · 跨渠道对比",
+      "card.asof": " ｜ 抓取 {date}",
+      "card.metaFx": "抓取 {date} ｜ 汇率 {fx} ｜ 单价 {unit}（{ccyDesc}）",
+      "card.sec.mtx": "单价矩阵 · 每百万 token（{sign}）",
+      "card.sec.mtxUsd": "USD 折算 · 汇率 {fx}",
+      "card.sec.algo": "算法情况 · 每 1 亿 token",
+        "card.sec.algoShort": "算法情况 · 每亿",
+      "card.sec.mtxShort": "单价矩阵",
+      "card.sec.key": "关键指标",
+      "card.sub.basis": "实际月费口径 ｜ 总额度 <b>{cap}</b>",
+      "card.sub.basisShort": "总额度 {cap}",
+      "cap.val": "{n} 亿 tokens",
+      "cap.short": "{n} 亿",
+      "card.tag.current": "当前画像",
+      "card.tag.currentShort": "当前",
+      "card.tag.ref": "参考画像",
+      "card.tag.refShort": "参考",
+      "card.expl": "<b>缓存读取 {c}%</b> · 普通输入 {i}% · 模型输出 {o}%{peak}",
+      "card.expl.peak": "；<b>峰谷 {pv}</b>：峰/谷时段加权（峰价 = 谷价 × 2）",
+      "card.expl.nopeak": "；本模型无峰谷时段计价",
+      "card.info.breakeven": "回本点（订阅 vs 按量）",
+      "card.info.breakevenVal": "月用 <em>{n} 亿</em> 起订阅划算",
+      "card.info.vsOfficial": "对比官方直售（{profile}）",
+      "card.info.vsOfficialVal": "≈ 官方的 <em>1/{n}</em>",
+      "card.info.isOfficial": "即官方本身",
+      "card.info.mode": "计价方式",
+      "card.info.sub": "订阅",
+      "card.info.payg": "按量",
+      "card.info.paygNodata": "按量无此项",
+      "card.src": "来源：{src}（① 官网原文） · 汇率 {fx}（{ccy}） · 每亿价按实际月费口径估算",
+      "card.srcDual": "来源：{a} ｜ {b}（① 官网原文） · 汇率 {fx} · 每亿价按实际月费口径估算",
+      "card.srcCcyShow": "显示币种",
+      "card.srcCcyConv": "USD→CNY",
+      "card.officialHint": "① 官网原文",
+      "mtx.peak": "峰价",
+      "mtx.valley": "谷价",
+      "mtx.flat": "统一价",
+      "mtx.hIn": "输入",
+      "mtx.hCache": "缓存",
+      "mtx.hOut": "输出",
+      "mtx.hInS": "入",
+      "mtx.hCacheS": "缓",
+      "mtx.hOutS": "出",
+      "mtx.note.peak": "峰价 = 谷价 × 2。峰时段按平台规则（多为工作日，周末全天谷价）；本表谷行取谷价、峰行取峰价。",
+      "mtx.note.flat": "本模型无峰谷时段计价，全天统一价。",
+      "note.sub": "订阅月费买额度，额度内按量价表扣减",
+      "note.payg": "按量计费，无月费与额度",
+      "note.peak": "峰谷双价（峰 = 谷 × 2）",
+      "note.flat": "全天统一价",
+      "note.dualTail": " 对比口径同右。",
+      "card.subs.fee": "月费",
+      "card.subs.quota": "月额度",
+      "card.subs.window": "窗口限制",
+      "card.subs.breakeven": "回本点",
+      "promo.live": "促销中",
+      "promo.sched": "促销预约",
+      "promo.ended": "已结束",
+      "promo.generic": "促销",
+      "status.gen": "生成中…",
+      "status.ok": "已保存 ✓",
+      "status.fail": "失败：{msg}",
+      "export.none": "没有数据可导出",
+      "shutdown.confirm": "停止监控台服务？\n\n数据已保存在 plans.db，不会丢失。\n下次双击「打开监控台.vbs」即可重新启动。",
+      "shutdown.stopping": "停止中…",
+      "shutdown.done": "监控台服务已停止 ✓<br><span style=\"font-size:12px;color:var(--muted-2)\">数据已保存 · 下次双击「打开监控台.vbs」重新启动（也可以直接关掉本页）</span>",
+      "shutdown.doneQuick": "监控台服务已停止 ✓<br><span style=\"font-size:12px;color:var(--muted-2)\">可以关掉本页了</span>",
+      "msg.addEmpty": "没有数据可导出",
+      "cap.valShort": "{n} 亿 tokens",
+      "foot.summaryPublic": "共 {n} 条快照 · {m} 个监测项 · 每亿价按 {profile} 折算",
+      "export.footSrcPublic": "公开数据 · 抓取 {date} ｜ 价格条为对数刻度",
+      "card.metaFxUnit": "$/百万",
+      "card.metaFxUnitCny": "¥/百万",
+      "card.ccy.usdConv": "USD 折算",
+      "card.ccy.cny": "人民币计价",
+      "card.ccy.usd": "美元计价",
+      "card.ccy.mixed": "混合币种按各自快照折算",
+      "ui.saveImg": "保存为图片",
+      "ui.pvPrefix": "（峰:谷 ",
+      "ui.pvSuffix": "）",
+      "unit.peakValley": "峰谷"
+    },
+    en: {
+      "doc.title": "CheepSeek Radar · AI Coding-Plan Value Tracker",
+      "brand.sub": " · AI Coding-Plan Value",
+      "nav.radar": "Ranking",
+      "nav.data": "Data",
+      "nav.reports": "Reports",
+      "nav.aria": "Page navigation",
+      "ui.saveAsImage": "Save as image",
+      "ui.saveAsImageTip": "Render this ranking as a 3:4 vertical image (ready for social media)",
+      "hero.title": "Who wins on value?",
+      "hero.subtitle": "Every channel's pricing, normalized to the actual monthly cost per 100M tokens — ranked by how far each unit of spend goes",
+      "hero.algoTag": "Method",
+      "hero.algoText": "Per-100M price = <b>effective cost per 100M tokens</b> under the usage profile below; subscription channels are then scaled by monthly fee ÷ monthly quota (the quota is a discount, not a cost)",
+      "hero.tagNow": "This issue",
+      "hero.tagBasis": "Basis",
+      "hero.stat.platforms": "Platforms",
+      "hero.stat.items": "Tracked items",
+      "hero.stat.snapshots": "Snapshots",
+      "hero.stat.models": "Models",
+      "col.captured": "Captured",
+      "col.platform": "Platform",
+      "col.plan": "Plan",
+      "col.model": "Model",
+      "col.fee": "Monthly fee",
+      "col.quota": "Quota",
+      "col.capacity": "Capacity",
+      "col.window": "Rate limits",
+      "col.price": "Price /1M",
+      "col.per100m": "per 100M",
+      "col.promo": "Promo",
+      "col.change": "Change",
+      "col.actions": "Actions",
+      "ds.category": "Full data sheet · all snapshots",
+      "ds.title": "One table, every channel",
+      "ds.subtitle": "Snapshot-style pricing records for each platform × model × plan; edits persist instantly and changes are highlighted",
+      "ds.stat.total": "Total snapshots",
+      "ds.stat.items": "Tracked items (platform × model × plan)",
+      "ds.stat.recent": "Latest capture",
+      "ds.stat.changed": "Changed items",
+      "ui.add": "＋ Add snapshot",
+      "f.platform": "Platform",
+      "f.model": "Model",
+      "f.plan": "Plan",
+      "f.all": "All",
+      "f.allX": "All {name}",
+      "f.selected": "{name} ({n})",
+      "f.selectAll": "All ({name})",
+      "f.noOptions": "No options",
+      "ui.compare": "Compare",
+      "ui.compareTip": "Pick two channels to build a same-model cross-channel comparison card (3:4)",
+      "ui.latest": "Latest only",
+      "ui.latestTip": "One-click filter: show only the latest capture per tracked item (click again to restore history)",
+      "ui.exportCsv": "Export CSV",
+      "ui.refresh": "Refresh",
+      "ui.profileLabel": "Usage profile",
+      "ui.preset": "Preset",
+      "ui.cacheReads": "Cache reads",
+      "ui.plainInput": "Plain input",
+      "ui.output": "Output",
+      "ui.total": "Total",
+      "ui.peakShare": "Peak share",
+      "ui.currency": "Currency",
+      "ui.fx": "FX rate",
+      "ui.fxHint": "(shown in CNY)",
+      "ui.tplNamePh": "New template name (optional)",
+      "ui.saveTpl": "Save template",
+      "ui.delTpl": "Delete template",
+      "ui.custom": "Custom",
+      "ui.peakValley": "peak:valley",
+      "tip.algo": "Per-100M price = weighted by the cache/input/output mix {mix} (peak:valley {pv}){fx}. Subscriptions use the effective monthly-fee basis (fee ÷ capacity; the quota is a discount, not a cost); pay-as-you-go uses list prices. The three token shares are fractions of ALL tokens and always sum to 100%; editing one auto-balances the rest. Red ▲ marks a price increase vs the previous snapshot, green ▼ a decrease.",
+      "tbl.emptyHtml": "No snapshots yet. Click “＋ Add snapshot” above to record the first one,<br>or import in batch via <b>monitor.py add</b>.",
+      "foot.summary": "{n} snapshots · {m} tracked items · data source monitor/plans.db · per-100M price at {profile}",
+      "ui.shutdown": "Stop server",
+      "ui.shutdownTip": "Stop the background server (restart later with 打开监控台.vbs)",
+      "ui.edit": "Edit",
+      "ui.delete": "Delete",
+      "row.viewCardTip": "Click to view this item's pricing card",
+      "row.srcTip": "Open the official page to verify: {url}",
+      "cap.none": "PAYG · no quota",
+      "unit.yi": " ×100M tokens",
+      "unit.yiShort": " ×100M",
+      "unit.per100m": "/100M",
+      "chg.first": "First snapshot",
+      "chg.none": "No change",
+      "chg.era": "vs prev gen",
+      "chg.base": "vs {model} · {date}",
+      "chg.baseEra": "vs prev gen · ",
+      "chg.full": "per-100M {prev} → {cur}",
+      "chg.pctWrap": " ({m})",
+      "plat.official": "Official API",
+      "plan.payg": "Pay-as-you-go",
+      "hero.capTip": "Monthly token capacity at the current usage profile",
+      "hero.baseline": " · baseline",
+      "hero.cta": "▸ View pricing card",
+      "hero.more": "{n} more channels not ranked · full table in the data sheet below ↓",
+      "hero.issue": "Issue {date}",
+      "hero.mult.tied": "Tied lowest",
+      "hero.mult.x": "{m}× the lowest",
+      "hero.mult.vsOff": "1/{n} of pay-as-you-go",
+      "hero.fact.quota": "Quota <b>{v}</b>",
+      "hero.fact.payg": "Pay-as-you-go <b>no monthly fee</b>",
+      "hero.fact.window": "Limits <b>{w}</b>",
+      "hero.fact.nolimit": "Rate limit <b>none</b>",
+      "hero.fact.asof": "As of <b>{d}</b>",
+      "hero.stat.updated": "Updated",
+      "hero.kv.breakeven": "Breakeven",
+      "hero.kv.breakevenVal": "{n}<small>×100M/mo makes it worth it</small>",
+      "hero.kv.commit": "Commitment",
+      "hero.kv.commitVal": "None<small>pay-as-you-go</small>",
+      "hero.tip.best": "Best now: {plat} · {model} at {price}/100M",
+      "hero.tip.promo": "{label}: {promo}",
+      "hero.tip.promoFallback": "Promo",
+      "hero.tip.vsOff": "1/{n} of pay-as-you-go",
+      "hero.tip.changed": "{n} changed",
+      "hero.tip.unchanged": "No price changes",
+      "hero.note.basis": "per-100M = effective monthly-fee basis | cache/input/output {mix} · peak:valley {pv}{fx} | bars are log-scale",
+      "hero.note.fx": " · FX {fx}",
+      "hero.kv.peakValley": "Peak : valley",
+      "hero.kv.peakValleyUnit": "peak : valley",
+      "export.cat.rank": "Coding-Plan Value · Ranking",
+      "export.heroTitle": "Who wins on value?",
+      "export.heroSub": "All channels normalized to actual monthly cost per 100M tokens · cheapest first",
+      "export.algoHead": "Method · how the per-100M price is computed",
+      "export.peakValleyUnit": "peak:valley",
+      "export.stats.platforms": "Platforms",
+      "export.stats.items": "Tracked items",
+      "export.stats.updated": "Updated",
+      "export.stats.snapshots": "Snapshots",
+      "export.tipBest": "Best now: {plat} at {price}/100M",
+      "export.tipSep": "  |  ",
+      "export.footNote": "Subscription per-100M prices use the effective monthly-fee basis (fee ÷ quota; the quota is a discount, not a cost); promo prices are recorded per official announcements.",
+      "export.footSrc": "Data source monitor/plans.db | captured {date} | bars are log-scale",
+      "modal.addTitle": "Add snapshot",
+      "modal.editTitle": "Edit snapshot #{id}",
+      "modal.f.captured": "Captured date",
+      "modal.f.platform": "Platform",
+      "modal.f.plan": "Plan",
+      "modal.f.model": "Model",
+      "modal.f.fee": "Monthly fee",
+      "modal.f.feeCcy": "Currency",
+      "modal.f.quota": "Monthly quota",
+      "modal.f.quotaCcy": "Quota currency",
+      "modal.f.window": "Rate limits",
+      "modal.f.inV": "Off-peak · input",
+      "modal.f.cacheV": "Off-peak · cache",
+      "modal.f.outV": "Off-peak · output",
+      "modal.f.inP": "Peak · input",
+      "modal.f.cacheP": "Peak · cache",
+      "modal.f.outP": "Peak · output",
+      "modal.f.ccy": "Price currency",
+      "modal.f.ccyHint": "Currency of the per-1M-token prices",
+      "modal.f.promo": "Promo note",
+      "modal.f.source": "Source URL",
+      "modal.f.note": "Notes",
+      "modal.f.feeHint": "Leave empty = pay-as-you-go, no monthly fee",
+      "modal.ph.platform": "e.g. Command Code / OpenCode / Ollama",
+      "modal.ph.plan": "e.g. Sub $10 / Pro / Pay-as-you-go",
+      "modal.ph.model": "e.g. deepseek-v4.1-flash-1017",
+      "modal.ph.window": "e.g. 5h $10 / 7d $18 / Mo $45",
+    "modal.ph.promo": "e.g. 70% off / ended",
+      "modal.ph.note": "Basis notes, rate limits, plan changes, etc.",
+      "ui.save": "Save",
+      "save.required": "Captured date / platform / model are required",
+      "save.saving": "Saving…",
+      "save.ok": "Saved ✓",
+      "save.fail": "Failed: {msg}",
+      "load.fail": "Failed to load: {msg}",
+      "del.confirm": "Delete #{id} ({info})?",
+      "del.fail": "Delete failed",
+      "tpl.saveFail": "Save failed: {msg}",
+      "tpl.builtin": "Built-in profiles can't be deleted",
+      "tpl.delConfirm": "Delete template “{name}”?",
+      "tpl.delFail": "Delete failed",
+      "cc.title": "Build comparison",
+      "cc.model": "Model",
+      "cc.chanA.plat": "Channel A · platform",
+      "cc.chanA.plan": "Channel A · plan",
+      "cc.chanB.plat": "Channel B · platform",
+      "cc.chanB.plan": "Channel B · plan",
+      "cc.noteLabel": "Footer note (optional)",
+      "cc.notePh": "Custom note; leave empty to auto-generate",
+      "cc.generate": "Build card",
+      "cc.pickModel": "Select a model",
+      "cc.pickModelPh": "Select a model",
+      "cc.pickPlatPh": "Select a platform",
+      "cc.pickPlanPh": "Select a plan",
+      "cc.pickTwo": "Select two channels (platform + plan)",
+      "cc.noSnap": "Channel snapshot not found",
+      "heroCard.title": "Ranking card · 3:4",
+      "prev.title": "Card preview",
+      "prev.back": "← Back to edit",
+      "cp.label": "Usage profile",
+      "cp.preset": "Preset",
+      "cp.cacheReads": "Cache",
+      "cp.plainInput": "Input",
+      "cp.output": "Output",
+      "cp.total": "Total",
+      "cp.peakShare": "Peak",
+      "cp.reset": "Reset",
+      "cp.pctTitle": "Share of all tokens; editing one auto-balances the rest to 100%",
+      "card.cat.profile": "Coding-Plan Value · Model Profile",
+      "card.cat.compare": "Coding-Plan Value · Cross-channel",
+      "card.asof": " | captured {date}",
+      "card.metaFx": "Captured {date} | FX {fx} | unit price {unit} ({ccyDesc})",
+      "card.metaFxUnit": "$/1M",
+      "card.metaFxUnitCny": "¥/1M",
+      "card.sec.mtx": "Unit prices · per 1M tokens ({sign})",
+      "card.sec.mtxUsd": "converted from USD · FX {fx}",
+      "card.sec.algo": "Per-100M economics · per 100M tokens",
+      "card.sec.algoShort": "Per-100M economics",
+      "card.sec.mtxShort": "Unit prices",
+      "card.sec.key": "Key metrics",
+      "card.sub.basis": "Effective fee basis | total capacity <b>{cap}</b>",
+      "card.sub.basisShort": "Capacity {cap}",
+      "cap.val": "{n} ×100M tokens",
+      "cap.short": "{n} ×100M",
+      "card.tag.current": "Current profile",
+      "card.tag.currentShort": "Current",
+      "card.tag.ref": "Reference profile",
+      "card.tag.refShort": "Reference",
+      "card.expl": "<b>Cache reads {c}%</b> · plain input {i}% · output {o}%{peak}",
+      "card.expl.peak": "; <b>peak:valley {pv}</b>: peak/valley-time weighted (peak = valley × 2)",
+      "card.expl.nopeak": "; flat pricing, no peak/valley hours",
+      "card.info.breakeven": "Breakeven (subscription vs pay-as-you-go)",
+          "card.info.breakevenVal": "worth it above <em>{n} ×100M/mo</em>",
+      "card.info.vsOfficial": "vs official list ({profile})",
+      "card.info.vsOfficialVal": "≈ <em>1/{n}</em> of official",
+      "card.info.isOfficial": "is the official itself",
+      "card.info.mode": "Billing mode",
+      "card.info.sub": "Subscription",
+      "card.info.payg": "Pay-as-you-go",
+      "card.info.paygNodata": "n/a for pay-as-you-go",
+      "card.src": "Source: {src} (official page) · FX {fx} ({ccy}) · per-100M estimated on the effective fee basis",
+      "card.srcDual": "Source: {a} | {b} (official page) · FX {fx} · per-100M estimated on the effective fee basis",
+      "card.srcCcyShow": "display currency",
+      "card.srcCcyConv": "USD→CNY",
+      "card.officialHint": "official page",
+      "mtx.peak": "Peak",
+      "mtx.valley": "Off-peak",
+      "mtx.flat": "Flat",
+      "mtx.hIn": "Input",
+      "mtx.hCache": "Cache",
+      "mtx.hOut": "Output",
+      "mtx.hInS": "In",
+      "mtx.hCacheS": "Cache",
+      "mtx.hOutS": "Out",
+      "mtx.note.peak": "Peak = off-peak × 2. Peak hours follow each platform's schedule (mostly weekdays; weekends are all off-peak). Valley rows use off-peak prices, peak rows use peak prices.",
+      "mtx.note.flat": "No peak/valley pricing for this model; one flat rate all day.",
+      "note.sub": "Monthly fee buys quota; usage draws down the list prices within quota",
+      "note.payg": "Pay-as-you-go, no monthly fee or quota",
+      "note.peak": "peak/valley pricing (peak = valley × 2)",
+      "note.flat": "flat rate all day",
+      "note.dualTail": " The other column uses the same basis.",
+      "card.subs.fee": "Monthly fee",
+      "card.subs.quota": "Monthly quota",
+      "card.subs.window": "Rate limits",
+      "card.subs.breakeven": "Breakeven",
+      "promo.live": "Promo live",
+      "promo.sched": "Promo scheduled",
+      "promo.ended": "Ended",
+      "promo.generic": "Promo",
+      "status.gen": "Rendering…",
+      "status.ok": "Saved ✓",
+      "status.fail": "Failed: {msg}",
+      "export.none": "Nothing to export",
+      "shutdown.confirm": "Stop the tracker server?\n\nData is saved in plans.db and will not be lost.\nRestart later with 打开监控台.vbs.",
+      "shutdown.stopping": "Stopping…",
+      "shutdown.done": "Tracker server stopped ✓<br><span style=\"font-size:12px;color:var(--muted-2)\">Data is saved · restart with 打开监控台.vbs (or just close this page)</span>",
+      "shutdown.doneQuick": "Tracker server stopped ✓<br><span style=\"font-size:12px;color:var(--muted-2)\">You can close this page</span>",
+      "msg.addEmpty": "Nothing to export",
+      "cap.valShort": "{n} ×100M",
+      "foot.summaryPublic": "{n} snapshots · {m} tracked items · per-100M price at {profile}",
+      "export.footSrcPublic": "Public data · captured {date} | bars are log-scale",
+      "card.ccy.usdConv": "converted from USD",
+      "card.ccy.cny": "CNY-denominated",
+      "card.ccy.usd": "USD-denominated",
+      "card.ccy.mixed": "mixed currencies, each at its own snapshot rate",
+      "ui.saveImg": "Save as image",
+      "ui.pvPrefix": " (peak:valley ",
+      "ui.pvSuffix": ")",
+      "unit.peakValley": "peak:valley"
+    }
+  };
+
+  var LANG = window.__LANG || "zh";
+  function t(key) {
+    var d = I18N[LANG] || I18N.zh;
+    var s = (key in d) ? d[key] : I18N.zh[key];
+    return s === undefined ? key : s;
+  }
+  function tf(key, vars) {
+    var s = t(key);
+    if (vars) for (var k in vars) s = s.split("{" + k + "}").join(vars[k]);
+    return s;
+  }
+  function applyStaticText() {
+    var i, nodes;
+    nodes = document.querySelectorAll("[data-i18n]");
+    for (i = 0; i < nodes.length; i++) nodes[i].textContent = t(nodes[i].getAttribute("data-i18n"));
+    nodes = document.querySelectorAll("[data-i18n-html]");
+    for (i = 0; i < nodes.length; i++) nodes[i].innerHTML = t(nodes[i].getAttribute("data-i18n-html"));
+    nodes = document.querySelectorAll("[data-i18n-ph]");
+    for (i = 0; i < nodes.length; i++) nodes[i].setAttribute("placeholder", t(nodes[i].getAttribute("data-i18n-ph")));
+    nodes = document.querySelectorAll("[data-i18n-title]");
+    for (i = 0; i < nodes.length; i++) nodes[i].setAttribute("title", t(nodes[i].getAttribute("data-i18n-title")));
+    nodes = document.querySelectorAll("[data-i18n-aria]");
+    for (i = 0; i < nodes.length; i++) nodes[i].setAttribute("aria-label", t(nodes[i].getAttribute("data-i18n-aria")));
+  }
+  // 数据内专有信息的展示层翻译（不改数据本身）：平台 / 套餐 / 窗口 / 促销文本
+  var DATA_MAPS = {
+    en: {
+      platform: { "官方API": "Official API" },
+      plan: { "按量": "Pay-as-you-go" },
+      window: [
+        [/月重置/g, "Monthly reset"],
+        [/月/g, "Mo"]
+      ],
+      promo: {
+        "限时额度（09-10起1周）": "Limited quota (from 09-10, 1 week)",
+        "限时4倍额度（09-10起72h）": "Limited 4× quota (from 09-10, 72h)"
+      }
+    }
+  };
+  function mapData(kind, v) {
+    if (LANG !== "en" || v === null || v === undefined) return v;
+    var m = DATA_MAPS.en[kind];
+    if (kind === "window") {
+      var s = String(v);
+      for (var i = 0; i < m.length; i++) s = s.replace(m[i][0], m[i][1]);
+      return s;
+    }
+    return (v in m) ? m[v] : v;
+  }
+  function platName(p) { return mapData("platform", p); }
+  function planName(p) { return mapData("plan", p); }
+  function winDisplay(w) { return mapData("window", w); }
+  function promoDisplay(p) { return mapData("promo", p); }
+  function setLang(lang) {
+    LANG = lang;
+    try { localStorage.setItem("csr_lang", lang); } catch (e) {}
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    document.title = t("doc.title");
+    applyStaticText();
+    if (typeof syncControlText === "function") syncControlText();
+    if (typeof loadTpls === "function") loadTpls();   // 画像下拉（含「自定义」项）随语言重建
+    if (typeof render === "function") render();
+  }
+  function syncLangSw() {
+    // 单击切换式：按钮上显示「目标语言」（中文界面显示 EN，英文界面显示 中文）
+    var b = document.getElementById("langBtn");
+    if (b) b.textContent = (LANG === "zh") ? "EN" : "中文";
+  }
+  // 语言切换后重设多选筛选按钮标签（按钮文本由 JS 动态生成，无法走 data-i18n）
+  function syncControlText() {
+    updateBtnLabel("platforms", "msPlatformBtn", t("f.platform"));
+    updateBtnLabel("models", "msModelBtn", t("f.model"));
+    updateBtnLabel("plans", "msPlanBtn", t("f.plan"));
+  }
+  document.getElementById("langBtn").addEventListener("click", function () {
+    setLang(LANG === "zh" ? "en" : "zh");
+    syncLangSw();
+  });
+  // 启动即应用预读语言（静态文案 / 标题 / 切换器态 / 筛选按钮标签）；表格渲染由 load() 在数据到位后触发
+  document.documentElement.lang = LANG === "zh" ? "zh-CN" : "en";
+  document.title = t("doc.title");
+  applyStaticText();
+  syncControlText();
+  syncLangSw();
+
+  // ================= 主题（Light / Dark / System） =================
+  // csr_theme: light | dark | system（默认 system）；eff = 实际生效主题（system 时按系统偏好解析）。
+  // <head> 预读脚本已设过初始 data-theme，这里接管后续切换与高亮。
+  function applyTheme() {
+    var pref = "system";
+    try { pref = localStorage.getItem("csr_theme") || "system"; } catch (e) {}
+    if (pref !== "light" && pref !== "dark" && pref !== "system") pref = "system";
+    var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    var eff = pref === "system" ? (mq && mq.matches ? "dark" : "light") : pref;
+    var h = document.documentElement;
+    h.setAttribute("data-theme", eff);
+    h.setAttribute("data-theme-pref", pref);
+    h.style.colorScheme = eff;
+    var b = document.getElementById("themeBtn");
+    if (b) b.textContent = (pref === "dark") ? "☾" : (pref === "system" ? "◐" : "☀");
+  }
+  document.getElementById("themeBtn").addEventListener("click", function () {
+    var pref = "system";
+    try { pref = localStorage.getItem("csr_theme") || "system"; } catch (e) {}
+    if (pref !== "light" && pref !== "dark" && pref !== "system") pref = "system";
+    var next = (pref === "light") ? "dark" : (pref === "dark" ? "system" : "light");
+    try { localStorage.setItem("csr_theme", next); } catch (err) {}
+    applyTheme();
+  });
+  // 跟随系统：pref 为 system 时，系统深浅切换即时生效
+  (function () {
+    var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    if (!mq) return;
+    var onChange = function () { applyTheme(); };
+    if (mq.addEventListener) mq.addEventListener("change", onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+  })();
+  applyTheme();
+
+  function ratioStr(pct) { return (pct / 10).toFixed(1).replace(/\.0$/, ""); }
+  function round2(v) { return Math.round(v * 100) / 100; }
+  function cloneProfile(p) {
+    return { cachePct: p.cachePct, inputPct: p.inputPct, outputPct: p.outputPct, peakPct: p.peakPct };
+  }
+  function cloneParams(p) {
+    return { cachePct: p.cachePct, inputPct: p.inputPct, outputPct: p.outputPct, peakPct: p.peakPct,
+      currency: p.currency, fx: p.fx };
+  }
+  function sameProfile(a, b) {
+    return Math.abs(a.cachePct - b.cachePct) < 0.001 &&
+      Math.abs(a.inputPct - b.inputPct) < 0.001 &&
+      Math.abs(a.outputPct - b.outputPct) < 0.001 &&
+      Math.abs(a.peakPct - b.peakPct) < 0.001;
+  }
+  function matchPreset(p) {
+    for (var i = 0; i < PRESETS.length; i++) if (sameProfile(p, PRESETS[i])) return PRESETS[i].id;
+    return "custom";
+  }
+  function pctStr(v) { return fmtNum(v, 2); }
+  function compositionStr(p) { return pctStr(p.cachePct) + "/" + pctStr(p.inputPct) + "/" + pctStr(p.outputPct); }
+  function paramsLabel(p) {
+    p = p || params;
+    return compositionStr(p) + " · " + t("unit.peakValley") + " " + ratioStr(p.peakPct) + ":" + ratioStr(100 - p.peakPct);
+  }
+  // 修改一项时保持三项合计 100：改缓存按原比例缩放输入/输出；改输入或输出则另一项补足。
+  function setCompositionValue(p, field, value) {
+    var v = Math.max(0, Math.min(100, Number(value) || 0));
+    v = round2(v);
+    if (field === "cachePct") {
+      p.cachePct = v;
+      var rest = 100 - v;
+      var total = p.inputPct + p.outputPct;
+      var ratio = total > 0 ? p.inputPct / total : 0.8;
+      p.inputPct = round2(rest * ratio);
+      p.outputPct = round2(rest - p.inputPct);
+    } else if (field === "inputPct") {
+      var room = 100 - p.cachePct;
+      p.inputPct = round2(Math.min(v, room));
+      p.outputPct = round2(room - p.inputPct);
+    } else {
+      var room2 = 100 - p.cachePct;
+      p.outputPct = round2(Math.min(v, room2));
+      p.inputPct = round2(room2 - p.outputPct);
+    }
+  }
+
+  // ---------- 显示币种换算（按快照原始币种 → 当前显示币种） ----------
+  function ccySign() { return params.currency === "CNY" ? "¥" : "$"; }
+  function toDisp(v, origCcy) {
+    if (v === null || v === undefined) return null;
+    var o = origCcy || "USD";
+    if (params.currency === o) return v;
+    return params.currency === "CNY" ? v * params.fx : v / params.fx;
+  }
+  function fmtDisp(v, origCcy, d) {
+    var x = toDisp(v, origCcy);
+    return x === null ? "—" : fmtNum(x, d === undefined ? 3 : d);
+  }
+  // 统一到 USD 基准（排序/对比用；快照原始 CNY 价先 ÷ 汇率）
+  function toUSDBasis(v, origCcy) {
+    if (v === null || v === undefined) return null;
+    return (origCcy === "CNY") ? v / params.fx : v;
+  }
+
+  // 总额度：月额度折算成 token 量（亿/月，随当前算法参数）——额度 ÷ 按量每亿价
+  function capacityFor(r) {
+    if (r.quota === null || r.quota === undefined || r.quota <= 0) return null;
+    var p = per100M(r);
+    if (p === null || p <= 0) return null;
+    var qUSD = (r.quota_currency === "CNY") ? r.quota / params.fx : r.quota;
+    var pUSD = toUSDBasis(p, r.currency);
+    return qUSD / pUSD;
+  }
+  function capLabel(r) {
+    if (r.fee === null) return t("cap.none");
+    var cap = capacityFor(r);
+    return cap === null ? "—" : tf("cap.val", {n: fmtNum(cap, 1)});
+  }
+
+  // ---------- 每亿价：订阅渠道按实际月费口径（月费 ÷ 容量），按量渠道按价表口径 ----------
+  // 容量 = 额度 ÷ 按量每亿价；订阅实际每亿 = 月费 ÷ 容量 = 按量每亿 × 月费/额度
+  function displayPer100M(r) {
+    var p = per100M(r);  // 按量口径（当前算法参数）
+    if (p === null) return null;
+    if (r.fee !== null && r.quota !== null && r.quota > 0) {
+      p = p * (r.fee / r.quota);  // 实际月费口径（月额度是优惠，不算成本）
+    }
+    return p;
+  }
+
+  // ---------- 每亿价（参数化：全量 token 构成 × 峰谷） ----------
+  function per100M(r) {
+    if (r.in_v === null || r.out_v === null) return null;
+    var cacheF = params.cachePct / 100, inputF = params.inputPct / 100, outputF = params.outputPct / 100;
+    var peakF = params.peakPct / 100, valleyF = 1 - peakF;
+    var peakIn = r.in_p !== null ? r.in_p : r.in_v;
+    var peakCache = r.cache_p !== null ? r.cache_p : r.cache_v;
+    var peakOut = r.out_p !== null ? r.out_p : r.out_v;
+    var mixIn = peakF * peakIn + valleyF * r.in_v;
+    var mixCache = peakF * peakCache + valleyF * r.cache_v;
+    var mixOut = peakF * peakOut + valleyF * r.out_v;
+    return (inputF * mixIn + cacheF * mixCache + outputF * mixOut) * 100;
+  }
+
+  // 数值格式化（自适应精度）
+  // d = 期望小数位（下限）。对 |x| < 1 的非零值，若按 d 位会舍入成 0 或只剩 1 位有效数字，
+  // 则自动增加小数位（最多 8 位）以保证至少 2 位有效数字——
+  // 例：0.0056 用 d=1 会变成 "0"（截图问题），此处输出 "0.0056"；真零输出 "0"。
+  function fmtNum(x, d) {
+    if (x === null || x === undefined) return "—";
+    var n = Number(x);
+    if (!isFinite(n)) return String(x);
+    if (n === 0) return "0";
+    var dec = d === undefined ? 3 : d;
+    var abs = Math.abs(n);
+    if (abs < 1) {
+      // 使 2 位有效数字可见所需的最小小数位：0.0056 → 4 位（"0.0056"）
+      var need = 1 - Math.floor(Math.log10(abs)) + 1;
+      if (need > dec) dec = Math.min(need, 8);
+    }
+    return n.toLocaleString("en-US", { maximumFractionDigits: dec });
+  }
+  function ccy(r) { return params.currency === "CNY" ? "¥" : "$"; }
+  function money(v, c) {
+    if (v === null) return "—";
+    if (params.currency === "CNY") return "¥" + fmtNum(v * params.fx, 2);
+    return fmtNum(v, 2) + " " + (c || "USD");
+  }
+
+  // ---------- 排序（与渲染顺序解耦，prevOf 不依赖数组位置） ----------
+  function sortRows(list) {
+    var key = sort.key;
+    return list.slice().sort(function (a, b) {
+      var va = (key === "price100") ? toUSDBasis(displayPer100M(a), a.currency)
+             : (key === "capacity") ? capacityFor(a) : a[key];
+      var vb = (key === "price100") ? toUSDBasis(displayPer100M(b), b.currency)
+             : (key === "capacity") ? capacityFor(b) : b[key];
+      if (va === null || va === undefined) return 1;   // 空值恒排最后
+      if (vb === null || vb === undefined) return -1;
+      if (va < vb) return -sort.dir;
+      if (va > vb) return sort.dir;
+      return 0;
+    });
+  }
+  function updateArrows() {
+    var keys = { captured_at: 0, fee: 1, quota: 2, price100: 3 };
+    var ths = document.querySelectorAll("th.sortable");
+    for (var i = 0; i < ths.length; i++) {
+      var ar = ths[i].querySelector(".arrow");
+      ar.textContent = (ths[i].dataset.sort === sort.key) ? (sort.dir === -1 ? "▼" : "▲") : "";
+    }
+  }
+
+  // ---------- 变化对比：同平台 + 同套餐 + 同模型系列的上一轮（按时间/ID 查找，与排序无关） ----------
+  // 系列规则：同一家族的版本迭代视为同一系列（如 0731 → 09-10 → 1017），
+  // 未知模型退回精确模型名，避免误合并。
+  var MODEL_SERIES_RULES = [
+    [/^deepseek-v[\d.]+-flash(?:-\d{4})?$/i, "deepseek-flash"],
+  ];
+  function modelSeries(model) {
+    var name = String(model || "").trim().toLowerCase();
+    for (var i = 0; i < MODEL_SERIES_RULES.length; i++) {
+      if (MODEL_SERIES_RULES[i][0].test(name)) return MODEL_SERIES_RULES[i][1];
+    }
+    return name;
+  }
+  function prevOf(row) {
+    var best = null;
+    var series = modelSeries(row.model);
+    for (var i = 0; i < rows.length; i++) {
+      var p = rows[i];
+      if (p.id === row.id) continue;
+      if (p.platform === row.platform && p.plan === row.plan &&
+          modelSeries(p.model) === series &&
+          (p.captured_at < row.captured_at || (p.captured_at === row.captured_at && p.id < row.id))) {
+        if (!best || p.captured_at > best.captured_at || (p.captured_at === best.captured_at && p.id > best.id)) best = p;
+      }
+    }
+    return best;
+  }
+
+  function price100USD(r) {
+    var p = displayPer100M(r);
+    return p === null ? null : toUSDBasis(p, r.currency);
+  }
+
+  // 变化列只比较当前画像下的每亿价；跨代际时标注「较上代」。
+  function changeMarkParts(row, prev) {
+    if (!prev) return { brief: '<span class="eq">' + t("chg.first") + '</span>', full: null, n: 0 };
+    var a = price100USD(row), b = price100USD(prev);
+    if (a === null || b === null || b === 0) return { brief: '<span class="eq">—</span>', full: null, n: 0 };
+
+    var d = (a - b) / b * 100;
+    var sym = ccy(row);
+    var prevTxt = sym + fmtNum(toDisp(displayPer100M(prev), prev.currency), 3);
+    var curTxt = sym + fmtNum(toDisp(displayPer100M(row), row.currency), 3);
+    var base = '<div class="chg-base">' + (prev.model !== row.model ? t("chg.baseEra") : "") +
+      tf("chg.base", {model: prev.model, date: prev.captured_at}) + "</div>";
+    var era = prev.model !== row.model ? '<span class="chg-era">' + t("chg.era") + '</span>' : "";
+    var full = base + tf("chg.full", {prev: prevTxt, cur: curTxt});
+
+    if (Math.abs(d) < 0.01) {
+      return { brief: era + '<span class="eq">' + t("chg.none") + '</span>', full: full, n: 0 };
+    }
+    var up = d > 0;
+    var mark = (up ? "▲ " : "▼ ") + fmtNum(Math.abs(d), 1) + "%";
+    return {
+      brief: era + '<span class="' + (up ? "pctup" : "pctdown") + '">' + mark + '</span>',
+      full: full + tf("chg.pctWrap", {m: mark}),
+      n: 1
+    };
+  }
+  // 变化单元格：明细多时挂悬浮浮窗（与价格列同款交互）
+  function changeCellHtml(row, prev) {
+    var p = changeMarkParts(row, prev);
+    if (!p.full) return '<td class="l">' + p.brief + '</td>';
+    return '<td class="l chg-cell">' + p.brief + '<div class="chg-tip">' + p.full + '</div></td>';
+  }
+
+  // ---------- 价格单元格：默认最低价（谷价），hover 显示峰谷完整价格 ----------
+  function priceCellHtml(r) {
+    var cur = r.currency || "USD";
+    var hasPeak = r.in_p !== null;
+    var main = (r.in_v !== null)
+      ? "<b>" + fmtDisp(r.in_v, cur) + "</b> / " + fmtDisp(r.cache_v, cur) + " / " + fmtDisp(r.out_v, cur)
+      : "—";
+    if (!hasPeak) return '<td class="price3">' + main + '</td>';
+    var tip = '<div class="tip-row"><b>' + t("mtx.valley") + '</b>　' + fmtDisp(r.in_v, cur) + " / " + fmtDisp(r.cache_v, cur) + " / " + fmtDisp(r.out_v, cur) + "</div>" +
+      '<div class="tip-row"><b>' + t("mtx.peak") + '</b>　' + fmtDisp(r.in_p, cur) + " / " + fmtDisp(r.cache_p, cur) + " / " + fmtDisp(r.out_p, cur) + "</div>";
+    return '<td class="price3 price-cell">' + main + '<div class="price-tip">' + tip + "</div></td>";
+  }
+
+  // ---------- 渲染 ----------
+  function render() {
+    var subNote = params.currency === "CNY" ? tf("hero.note.fx", {fx: params.fx}) : "";
+    $("algoTip").textContent = tf("tip.algo", {mix: compositionStr(params), pv: ratioStr(params.peakPct) + ":" + ratioStr(100 - params.peakPct), fx: subNote});
+    renderHero();   // 头页榜单与表格共用参数/币种，实时同步
+    var filtered = rows.filter(function (r) {
+      return inSel(sel.platforms, r.platform) && inSel(sel.models, r.model) && inSel(sel.plans, r.plan);
+    });
+    if (viewLatest) filtered = filtered.filter(isLatest);
+    filtered = sortRows(filtered);
+    updateArrows();
+    var tbody = $("tbody");
+    tbody.innerHTML = "";
+    if (!filtered.length) { $("emptyBox").hidden = false; return; }
+    $("emptyBox").hidden = true;
+
+    var keys = {}, changed = 0;
+    for (var i = 0; i < filtered.length; i++) {
+      var r = filtered[i];
+      keys[r.platform + "|" + r.model + "|" + r.plan] = 1;
+      var prev = prevOf(r);
+      if (prev && changeMarkParts(r, prev).n > 0) changed++;
+      var p100 = displayPer100M(r);
+      var tr = document.createElement("tr");
+      if (i % 2) tr.className = "alt";
+      tr.setAttribute("data-row-id", r.id);
+      tr.setAttribute("title", t("row.viewCardTip"));
+      tr.innerHTML =
+        '<td>' + r.captured_at + '</td>' +
+        '<td class="l">' + (r.source_url
+          ? '<a class="plat-link" href="' + r.source_url + '" target="_blank" rel="noopener" title="' + tf("row.srcTip", {url: r.source_url}) + '"><b>' + platName(r.platform) + '</b><span class="ext">↗</span></a>'
+          : '<b>' + platName(r.platform) + '</b>') + '</td>' +
+        '<td class="l">' + (planName(r.plan) || "—") + '</td>' +
+        '<td class="l">' + r.model + '</td>' +
+        '<td class="fee">' + money(r.fee, r.fee_currency) + '</td>' +
+        '<td>' + money(r.quota, r.quota_currency) + '</td>' +
+        '<td>' + (capacityFor(r) !== null ? tf("cap.valShort", {n: fmtNum(capacityFor(r), 1)}) : "—") + '</td>' +
+        '<td class="l tdw">' + (winDisplay(r.window) || "—") + '</td>' +
+        priceCellHtml(r) +
+        '<td class="mono">' + (p100 !== null ? ccy(r) + fmtNum(toDisp(p100, r.currency), 1) : "—") + '</td>' +
+        '<td class="promo">' + (promoDisplay(r.promo) || "") + '</td>' +
+        changeCellHtml(r, prev) +
+        (PUBLIC ? '<td></td>' : '<td class="op"><a data-edit="' + r.id + '">' + t("ui.edit") + '</a><a class="del" data-del="' + r.id + '">' + t("ui.delete") + '</a></td>');
+      tbody.appendChild(tr);
+    }
+    // 统计
+    $("stTotal").textContent = filtered.length;
+    $("stKeys").textContent = Object.keys(keys).length;
+    var recent = null;
+    for (var k = 0; k < filtered.length; k++) if (!recent || filtered[k].captured_at > recent) recent = filtered[k].captured_at;
+    $("stRecent").textContent = recent || "—";
+    $("stChanged").textContent = changed;
+    $("foot").textContent = tf(PUBLIC ? "foot.summaryPublic" : "foot.summary", {n: filtered.length, m: Object.keys(keys).length, profile: paramsLabel()});
+  }
+
+  // ---------- 头页（封面）：TOP 榜 + 速览 ----------
+  var heroModel = null;      // 当前榜单模型（null = 自动默认）
+  var heroAnimated = false;  // 仅首次渲染播入场动画
+
+  // 各 (平台×模型×套餐) 取最新快照，按模型分组
+  function heroBuckets() {
+    var byKey = {};
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var k = r.platform + "|" + r.model + "|" + (r.plan || "");
+      var b = byKey[k];
+      if (!b || r.captured_at > b.captured_at || (r.captured_at === b.captured_at && r.id > b.id)) byKey[k] = r;
+    }
+    var byModel = {};
+    for (var k2 in byKey) {
+      var r2 = byKey[k2];
+      (byModel[r2.model] = byModel[r2.model] || []).push(r2);
+    }
+    return byModel;
+  }
+  // 促销状态：从 promo 文本解析起始日期（如「09-12起」），判断今天是否已生效
+  // 返回 { active: true/false/null, label: "促销中"/"促销预约"/"促销" }
+  // 解析不出日期 → active=null，label 用中性"促销"
+  function promoState(r) {
+    var s = r.promo || "";
+    if (!s) return null;
+    var m = s.match(/(\d{1,2})-(\d{1,2})\s*起/);
+    if (!m) {
+      // 形如「8折」「70% off」这类无日期促销，视为常态生效
+      return { active: true, label: t("promo.live") };
+    }
+    var now = new Date();
+    var yr = now.getFullYear();
+    var start = new Date(yr, parseInt(m[1], 10) - 1, parseInt(m[2], 10));
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (today < start) return { active: false, label: t("promo.sched") };
+    // 若文本带持续时长（如「09-10起1周」「09-10起72h」），到期后显示「已结束」，
+    // 避免历史快照的限时促销被误读成仍在进行。
+    var d = s.match(/起\s*(\d+)\s*(周|星期|weeks?|w|天|日|days?|d|小时|hours?|h)/i);
+    if (d) {
+      var n = parseInt(d[1], 10), unit = d[2].toLowerCase();
+      var hours = /周|星期|w|week/.test(unit) ? n * 168 : (/天|日|d|day/.test(unit) ? n * 24 : n);
+      var end = new Date(start.getTime() + hours * 3600 * 1000);
+      if (today >= end) return { active: false, label: t("promo.ended") };
+    }
+    return { active: true, label: t("promo.live") };
+  }
+
+  // 促销时长（小时）：从 promo 文本解析"限时"持续时长，供同价时定序
+  // 支持：N周/星期/w · N天/日/d · N小时/h；解析不出返回 0（视为无时长优势）
+  function promoHours(r) {
+    var s = r.promo || "";
+    if (!s) return 0;
+    var m = s.match(/(\d+)\s*(?:周|星期|weeks?|w)/i);
+    if (m) return parseInt(m[1], 10) * 168;
+    m = s.match(/(\d+)\s*(?:天|日|days?|d)/i);
+    if (m) return parseInt(m[1], 10) * 24;
+    m = s.match(/(\d+)\s*(?:小时|hours?|h)/i);
+    if (m) return parseInt(m[1], 10);
+    return 0;
+  }
+  // 窗口月额度（USD）：从 window 文本取"月 $N"，用于同价时的次级比较
+  function windowCap(r) {
+    var s = r.window || "";
+    var m = s.match(/月[^\d]*([\d.]+)/);
+    return m ? parseFloat(m[1]) : 0;
+  }
+
+  // 计算每亿价并按 USD 基准升序（跨币种可比）
+  // 同价时的定序规则（避免退化为任意顺序）：
+  //   ① 优惠期更长者优先（更经久耐用）
+  //   ② 窗口月额度更宽者优先（限额更慷慨）
+  //   ③ 平台名（保证确定性）
+  function heroPriced(list) {
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+      var p = displayPer100M(list[i]);
+      if (p === null) continue;
+      out.push({ r: list[i], p: p, usd: toUSDBasis(p, list[i].currency) });
+    }
+    out.sort(function (a, b) {
+      if (Math.abs(a.usd - b.usd) > 1e-9) return a.usd - b.usd;   // 主序：价低者前
+      var pa = promoHours(a.r), pb = promoHours(b.r);
+      if (pa !== pb) return pb - pa;                              // 同日：优惠期长者在
+      var wa = windowCap(a.r), wb = windowCap(b.r);
+      if (wa !== wb) return wb - wa;                              // 再同：限额宽者在
+      return a.r.platform < b.r.platform ? -1 : (a.r.platform > b.r.platform ? 1 : 0);
+    });
+    return out;
+  }
+
+  function renderHero() {
+    if (!rows.length) return;
+    var bm = heroBuckets();
+    var models = Object.keys(bm);
+    if (!models.length) return;
+
+    // 默认榜单：优先 deepseek-v4.1-flash-1017，否则渠道最多者
+    if (!heroModel || models.indexOf(heroModel) < 0) {
+      heroModel = models.indexOf("deepseek-v4.1-flash-1017") >= 0
+        ? "deepseek-v4.1-flash-1017"
+        : models.slice().sort(function (a, b) { return bm[b].length - bm[a].length; })[0];
+    }
+
+    // 模型 chips
+    var ordered = models.slice().sort(function (a, b) {
+      var av = a === "deepseek-v4.1-flash-1017" ? 1 : 0, bv = b === "deepseek-v4.1-flash-1017" ? 1 : 0;
+      if (av !== bv) return bv - av;
+      return bm[b].length - bm[a].length;
+    });
+    var chipHtml = "";
+    for (var i = 0; i < ordered.length; i++) {
+      chipHtml += '<button class="h-chip' + (ordered[i] === heroModel ? " on" : "") +
+        '" data-hero-model="' + ordered[i] + '">' + ordered[i] +
+        '<span class="h-chip-n">' + bm[ordered[i]].length + '</span></button>';
+    }
+    $("hChips").innerHTML = chipHtml;
+
+    // 分档：订阅渠道 vs 官方直充基准
+    var priced = heroPriced(bm[heroModel]);
+    var subs = [], off = null;
+    for (var j = 0; j < priced.length; j++) {
+      if (priced[j].r.platform === "官方API") off = priced[j];
+      else subs.push(priced[j]);
+    }
+    var top3 = subs.slice(0, 3);
+    var fourth = off || (subs.length > 3 ? subs[3] : null);
+    var shownSubs = top3.length + (fourth && fourth.r.platform !== "官方API" ? 1 : 0);
+    var restN = Math.max(0, subs.length - shownSubs);
+    var champ = top3.length ? top3[0] : (off || null);
+    var vsOff = (off && champ && champ.usd) ? off.usd / champ.usd : null;
+
+    // 价格条：对数刻度（越长越贵），最短保留 8% 可见宽度
+    var pmin = priced[0].usd, pmax = priced[priced.length - 1].usd;
+    function barW(usd) {
+      if (!(pmax > pmin)) return 100;
+      var t = Math.log(usd / pmin) / Math.log(pmax / pmin);
+      return Math.max(8, Math.min(100, Math.round(t * 100)));
+    }
+    function multOf(it) {
+      if (!champ || !champ.usd) return "";
+      var m = it.usd / champ.usd;
+      if (m <= 1.05) return t("hero.mult.tied");
+      return tf("hero.mult.x", {m: fmtNum(m, 1)});
+    }
+    // 每格的"决策事实"：从快照真实字段生成（额度 / 窗口 / 抓取日），空值给等价结论而非留白
+    function factsOf(r) {
+      var f = [];
+      if (r.quota) f.push("<i>" + tf("hero.fact.quota", {v: ccyFor() + fmtNum(toDisp(r.quota, r.quota_currency || "USD"), 0)}) + "</i>");
+      else f.push("<i>" + t("hero.fact.payg") + "</i>");
+      if (r.window) f.push("<i>" + tf("hero.fact.window", {w: winDisplay(r.window).replace(/\s*\/\s*/g, " · ")}) + "</i>");
+      else if (r.fee === null) f.push("<i>" + t("hero.fact.nolimit") + "</i>");
+      f.push("<i>" + tf("hero.fact.asof", {d: r.captured_at}) + "</i>");
+      return '<div class="h-facts">' + f.join("") + "</div>";
+    }
+    function cell(it, rank, cls, extraStyle) {
+      if (!it) return "";
+      var r = it.r;
+      var tags = r.promo ? '<span class="h-promo">' + promoDisplay(r.promo) + '</span>' : "";
+      if (cls === "h-c1") {
+        if (vsOff) tags += '<span class="h-mult">' + tf("hero.mult.vsOff", {n: fmtNum(vsOff, 0)}) + '</span>';
+      } else {
+        var m = multOf(it);
+        if (m) tags += '<span class="h-mult">' + m + '</span>';
+      }
+      var w = barW(it.usd);
+      var isOff = (cls === "h-c4" && r.platform === "官方API");
+      var priceHtml = '<div class="h-price">' + dualMoneyFmt(it.p, r.currency || "USD", 1, 2) +
+        '<span class="h-unit">' + t("unit.per100m") + '</span></div>';
+
+      // 冠军格：价格与"同价能买多少"横排，把大块面积用起来（不留空白，也不是堆字）
+      var body;
+      if (cls === "h-c1") {
+        // 冠军格右侧 KV：优先"回本点"（订阅制决策关键），按量制则给"无门槛"结论
+        // 回本点必须用「按量从价」per100M(r)，不能用订阅实际每亿价 it.p（后者已含 fee/quota，会把回本点放大 fee/quota 倍）
+        var feeUSD = (r.fee !== null && r.fee_currency === "USD") ? r.fee : (r.fee !== null ? r.fee / params.fx : null);
+        var rawP = per100M(r);
+        var be = (feeUSD !== null && rawP) ? feeUSD / toUSDBasis(rawP, r.currency || "USD") : null;
+        var kv;
+        if (be !== null) {
+          kv = '<div class="h-c1-kv"><dt>' + t("hero.kv.breakeven") + '</dt><dd>' + tf("hero.kv.breakevenVal", {n: fmtNum(be, 2)}) + '</dd></div>';
+        } else if (r.fee === null) {
+          kv = '<div class="h-c1-kv"><dt>' + t("hero.kv.commit") + '</dt><dd>' + t("hero.kv.commitVal") + '</dd></div>';
+        } else {
+          kv = "";
+        }
+        body = '<div class="h-c1-row">' + priceHtml + kv + '</div>' +
+          '<div class="h-bar"><i style="width:' + w + '%"></i></div>' +
+          '<div class="h-tags">' + tags + '</div>' + factsOf(r);
+      } else {
+        body = priceHtml +
+          '<div class="h-bar"><i style="width:' + w + '%"></i></div>' +
+          '<div class="h-tags">' + tags + '</div>' + factsOf(r);
+      }
+      return '<div class="h-cell ' + cls + (isOff ? " h-off" : "") + '" data-hero-id="' + r.id + '"' +
+        (extraStyle ? ' style="' + extraStyle + '"' : '') + ' ' +
+        'title="' + t("row.viewCardTip") + '">' +
+        '<div class="h-cap" title="' + t("hero.capTip") + '">' + capLabel(r) + '</div>' +
+        '<div class="h-plat">' + platName(r.platform) + '</div>' +
+        '<div class="h-plan">' + (planName(r.plan) || "—") + (isOff ? t("hero.baseline") : '') + '</div>' +
+        body +
+        (cls === "h-c1" ? '<div class="h-cta">' + t("hero.cta") + '</div>' : '') +
+        '</div>';
+    }
+
+    // 速览统计
+    var platN = {}, keyN = {}, modelN = {}, recent = "";
+    for (var s = 0; s < rows.length; s++) {
+      platN[rows[s].platform] = 1;
+      keyN[rows[s].platform + "|" + rows[s].model + "|" + rows[s].plan] = 1;
+      modelN[rows[s].model] = 1;
+      if (rows[s].captured_at > recent) recent = rows[s].captured_at;
+    }
+    var statsHtml =
+      '<div class="h-stat"><div class="h-stat-n">' + Object.keys(platN).length + '</div><div class="h-stat-l">' + t("hero.stat.platforms") + '</div></div>' +
+      '<div class="h-stat"><div class="h-stat-n">' + Object.keys(keyN).length + '</div><div class="h-stat-l">' + t("hero.stat.items") + '</div></div>' +
+      '<div class="h-stat"><div class="h-stat-n">' + rows.length + '</div><div class="h-stat-l">' + t("hero.stat.snapshots") + '</div></div>' +
+      '<div class="h-stat"><div class="h-stat-n">' + Object.keys(modelN).length + '</div><div class="h-stat-l">' + t("hero.stat.models") + '</div></div>' +
+      '<div class="h-stat"><div class="h-stat-n accent">' + (recent || "—") + '</div><div class="h-stat-l">' + t("hero.stat.updated") + '</div></div>';
+
+    var first = !heroAnimated;
+    if (first) $("hero").classList.add("h-anim");
+
+    // 动态网格：按实际格数分配，避免空洞（渠道少的模型可能不足 4 家）
+    var cellsN = [top3[0], top3[1], top3[2], fourth].filter(Boolean).length;
+    var st1 = "", st2 = "", st3 = "";
+    if (cellsN === 1) { st1 = "grid-column:1/4;grid-row:1/3;"; }
+    else if (cellsN === 2) { st2 = "grid-column:2/4;grid-row:1/3;"; }
+    else if (cellsN === 3) { st3 = "grid-column:2/4;grid-row:2;"; }
+
+    $("hMosaic").innerHTML =
+      cell(top3[0], "01", "h-c1", st1) + cell(top3[1], "02", "h-c2", st2) +
+      cell(top3[2], "03", "h-c3", st3) + cell(fourth, "04", "h-c4") +
+      '<div class="h-stats">' + statsHtml + '</div>';
+    $("hMore").textContent = restN > 0
+      ? tf("hero.more", {n: restN})
+      : "";
+    $("hBrandMeta").textContent = tf("hero.issue", {date: recent || "—"});
+
+    // 算法口径带：讲清"每亿价怎么算出来的"（全量 token 三项 + 峰谷，与面板参数实时联动）
+    $("hAlgoCells").innerHTML =
+      '<div class="kv"><dt>' + t("ui.cacheReads") + '</dt><dd>' + pctStr(params.cachePct) + '<small>%</small></dd></div>' +
+      '<div class="kv"><dt>' + t("ui.plainInput") + '</dt><dd>' + pctStr(params.inputPct) + '<small>%</small></dd></div>' +
+      '<div class="kv"><dt>' + t("ui.output") + '</dt><dd>' + pctStr(params.outputPct) + '<small>%</small></dd></div>' +
+      '<div class="kv"><dt>' + t("hero.kv.peakValley") + '</dt><dd>' + ratioStr(params.peakPct) + ':' + ratioStr(100 - params.peakPct) + '<small>' + t("hero.kv.peakValleyUnit") + '</small></dd></div>';
+
+    // 本期提示 + 口径
+    var tips = [];
+    if (champ) tips.push(tf("hero.tip.best", {plat: platName(champ.r.platform), model: heroModel,
+      price: ccyFor() + fmtNum(toDisp(champ.p, champ.r.currency), 1)}));
+    if (champ && champ.r.promo) {
+      var ps = promoState(champ.r);
+      tips.push(tf("hero.tip.promo", {label: ps ? ps.label : t("hero.tip.promoFallback"), promo: promoDisplay(champ.r.promo)}));
+    }
+    if (vsOff) tips.push(tf("hero.tip.vsOff", {n: fmtNum(vsOff, 0)}));
+    var changedN = 0;
+    for (var q = 0; q < rows.length; q++) {
+      if (rows[q].captured_at !== recent) continue;
+      var pvq = prevOf(rows[q]);
+      if (pvq && changeMarkParts(rows[q], pvq).n > 0) changedN++;
+    }
+    tips.push(changedN > 0 ? tf("hero.tip.changed", {n: changedN}) : t("hero.tip.unchanged"));
+    $("hNote1").textContent = tips.join(t("export.tipSep"));
+
+    var ccyNote = params.currency === "CNY" ? tf("hero.note.fx", {fx: params.fx}) : "";
+    $("hNote2").textContent = tf("hero.note.basis", {mix: compositionStr(params),
+      pv: ratioStr(params.peakPct) + ":" + ratioStr(100 - params.peakPct), fx: ccyNote});
+
+    // 首次渲染：播放入场动画（纯 CSS），播完移除动画类（避免改参数时重播）
+    if (first) {
+      heroAnimated = true;
+      setTimeout(function () { $("hero").classList.remove("h-anim"); }, 1400);
+    }
+  }
+  function ccyFor() { return params.currency === "CNY" ? "¥" : "$"; }
+
+  // ---------- 头页 → 3:4 竖版图文卡（同版式响应式重排，导出 1440×1920） ----------
+  function buildHeroCard() {
+    if (!rows.length) return "";
+    var bm = heroBuckets();
+    var models = Object.keys(bm);
+    if (!models.length) return "";
+    var priced = heroPriced(bm[heroModel]);
+    var subs = [], off = null;
+    for (var i = 0; i < priced.length; i++) {
+      if (priced[i].r.platform === "官方API") off = priced[i]; else subs.push(priced[i]);
+    }
+    var top3 = subs.slice(0, 3);
+    var fourth = off || (subs.length > 3 ? subs[3] : null);
+    if (!priced.length) return "";
+    var pmin = priced[0].usd, pmax = priced[priced.length - 1].usd;
+    function barW(usd) {
+      if (!(pmax > pmin)) return 100;
+      return Math.max(8, Math.min(100, Math.round(Math.log(usd / pmin) / Math.log(pmax / pmin) * 100)));
+    }
+    var champ = top3.length ? top3[0] : (off || null);
+    var vsOff = (off && champ && champ.usd) ? off.usd / champ.usd : null;
+
+    function hcell(it, rank, cls) {
+      if (!it) return "";
+      var r = it.r;
+      var isOff = (cls === "hc-c4" && r.platform === "官方API");
+      var tg = r.promo ? '<span class="hc-pm">' + promoDisplay(r.promo) + '</span>' : "";
+    if (cls === "hc-c1" && vsOff) tg += '<span class="hc-mu">' + tf("hero.mult.vsOff", {n: fmtNum(vsOff, 0)}) + '</span>';
+    else if (it.usd && champ && champ.usd) {
+      var hm = it.usd / champ.usd;
+      tg += '<span class="hc-mu">' + (hm > 1.05 ? tf("hero.mult.x", {m: fmtNum(hm, 1)}) : t("hero.mult.tied")) + '</span>';
+    }
+      var ft = [];
+      if (r.quota) ft.push("<i>" + tf("hero.fact.quota", {v: ccyFor() + fmtNum(toDisp(r.quota, r.quota_currency || "USD"), 0)}) + "</i>");
+      else ft.push("<i>" + t("hero.fact.payg") + "</i>");
+      if (r.window) ft.push("<i>" + tf("hero.fact.window", {w: winDisplay(r.window).replace(/\s*\/\s*/g, " · ")}) + "</i>");
+      ft.push("<i>" + tf("hero.fact.asof", {d: r.captured_at}) + "</i>");
+    return '<div class="hc-cell ' + cls + '">' +
+      '<div class="hc-top"><div class="hc-cap">' + capLabel(r) + '</div><div class="hc-pf">' + platName(r.platform) + '</div></div>' +
+      '<div class="hc-pl">' + (planName(r.plan) || "—") + (isOff ? t("hero.baseline") : "") + '</div>' +
+        '<div class="hc-pr">' + dualMoneyFmt(it.p, r.currency || "USD", 1, 2) + '<span class="u">' + t("unit.per100m") + '</span></div>' +
+        '<div class="hc-bar"><i style="width:' + barW(it.usd) + '%"></i></div>' +
+        '<div class="hc-tg">' + tg + '</div>' +
+        '<div class="hc-ft">' + ft.join("") + '</div>' +
+        '</div>';
+    }
+    // chips（当前榜单高亮）
+    var chipHtml = "";
+    var ordered = models.slice().sort(function (a, b) { return bm[b].length - bm[a].length; });
+    for (var c = 0; c < ordered.length; c++) {
+      chipHtml += '<span' + (ordered[c] === heroModel ? ' class="on"' : "") + '>' + ordered[c] + " " + bm[ordered[c]].length + "</span>";
+    }
+    // 算法口径（与当前参数同步）
+    var algoKv =
+      '<div class="kv"><dt>' + t("ui.cacheReads") + '</dt><dd>' + pctStr(params.cachePct) + '<small>%</small></dd></div>' +
+      '<div class="kv"><dt>' + t("ui.plainInput") + '</dt><dd>' + pctStr(params.inputPct) + '<small>%</small></dd></div>' +
+      '<div class="kv"><dt>' + t("ui.output") + '</dt><dd>' + pctStr(params.outputPct) + '<small>%</small></dd></div>' +
+      '<div class="kv"><dt>' + t("hero.kv.peakValley") + '</dt><dd>' + ratioStr(params.peakPct) + ':' + ratioStr(100 - params.peakPct) + '<small>' + t("export.peakValleyUnit") + '</small></dd></div>';
+    // 统计
+    var platN = {}, keyN = {}, recent = "";
+    for (var s = 0; s < rows.length; s++) {
+      platN[rows[s].platform] = 1;
+      keyN[rows[s].platform + "|" + rows[s].model + "|" + rows[s].plan] = 1;
+      if (rows[s].captured_at > recent) recent = rows[s].captured_at;
+    }
+    var statsHtml =
+      '<div class="st"><b>' + Object.keys(platN).length + '</b><i>' + t("export.stats.platforms") + '</i></div>' +
+      '<div class="st"><b>' + Object.keys(keyN).length + '</b><i>' + t("export.stats.items") + '</i></div>' +
+      '<div class="st mid"><b>' + recent + '</b><i>' + t("export.stats.updated") + '</i></div>' +
+      '<div class="st"><b>' + rows.length + '</b><i>' + t("export.stats.snapshots") + '</i></div>';
+
+    var tip = (champ ? tf("export.tipBest", {plat: platName(champ.r.platform), price: ccyFor() + fmtNum(toDisp(champ.p, champ.r.currency), 1)})
+      + (champ.r.promo ? (t("export.tipSep") + tf("hero.tip.promo", {label: (promoState(champ.r) ? promoState(champ.r).label : t("hero.tip.promoFallback")), promo: promoDisplay(champ.r.promo)})) : "") : "")
+      + (vsOff ? t("export.tipSep") + tf("hero.mult.vsOff", {n: fmtNum(vsOff, 0)}) : "");
+
+    return '<div class="hero-card">' +
+      '<div class="hc-head"><div class="hc-cat">' + t("export.cat.rank") + ' · ' + IMAGE_SIGNATURE + '</div>' +
+      '<div class="hc-title">' + t("export.heroTitle") + '</div>' +
+      '<div class="hc-sub">' + t("export.heroSub") + '</div></div>' +
+      '<div class="hc-body">' +
+        '<div class="hc-chips">' + chipHtml + '</div>' +
+        '<div class="hc-grid">' + hcell(top3[0], "01", "hc-c1") + hcell(top3[1], "02", "hc-c2") +
+          hcell(top3[2], "03", "hc-c3") + hcell(fourth, "04", "hc-c4") + '</div>' +
+        '<div class="hc-algo"><div class="hd">' + t("export.algoHead") + '</div><div class="kvs">' + algoKv + '</div></div>' +
+        '<div class="hc-stats">' + statsHtml + '</div>' +
+        '<div class="hc-note">' + tip + '</div>' +
+      '</div>' +
+      '<div class="hc-foot"><div class="nt">' + t("export.footNote") + '</div>' +
+      '<div class="sc">' + tf(PUBLIC ? "export.footSrcPublic" : "export.footSrc", {date: recent}) + '</div></div>' +
+    '</div>';
+  }
+
+  // 头页交互：模型 chips / 点击格子打开图文卡
+  $("hChips").addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("[data-hero-model]") : null;
+    if (!b) return;
+    heroModel = b.getAttribute("data-hero-model");
+    renderHero();
+  });
+  // 头页 → 3:4 图文卡：生成 / 预览 / 保存
+  var heroCardModal = $("heroCardModal");
+  $("btnHeroCard").addEventListener("click", function () {
+    var html = buildHeroCard();
+    if (!html) { return; }
+    $("heroCardStage").innerHTML = html;
+    $("heroCardStatus").textContent = "";
+    heroCardModal.hidden = false;
+  });
+  $("heroCardClose").addEventListener("click", function () { heroCardModal.hidden = true; });
+  heroCardModal.addEventListener("click", function (e) { if (e.target === heroCardModal) heroCardModal.hidden = true; });
+  $("heroCardSave").addEventListener("click", function () {
+    var card = $("heroCardStage").querySelector(".hero-card");
+    if (!card) return;
+    $("heroCardSave").disabled = true;
+    $("heroCardStatus").textContent = t("status.gen");
+    var name = "plan-ranking-" + (heroModel || "hero").replace(/[^a-z0-9.-]+/gi, "_") + ".png";
+    captureCard(card, 3).then(function (url) {
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      $("heroCardStatus").textContent = t("status.ok");
+    }).catch(function (e) {
+      $("heroCardStatus").textContent = tf("status.fail", {msg: e.message});
+    }).finally(function () { $("heroCardSave").disabled = false; });
+  });
+
+  $("hMosaic").addEventListener("click", function (e) {
+    var c = e.target.closest ? e.target.closest("[data-hero-id]") : null;
+    if (!c) return;
+    var snap = rows.find(function (x) { return String(x.id) === c.getAttribute("data-hero-id"); });
+    if (snap) openRowCard(snap);
+  });
+
+  // ---------- 多选筛选组件 ----------
+  // 关闭所有多选菜单（切换菜单前调用：保证同一时刻只开一个）
+  function closeAllMs() {
+    $("msPlatformMenu").hidden = true;
+    $("msModelMenu").hidden = true;
+    $("msPlanMenu").hidden = true;
+  }
+  // initMs(key, btnId, menuId, label): 通用多选下拉
+  function initMs(key, btnId, menuId, label) {
+    var btn = $(btnId), menu = $(menuId);
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var willOpen = menu.hidden;   // 先记意图，再统一关闭其他菜单
+      closeAllMs();
+      menu.hidden = !willOpen;
+    });
+    menu.addEventListener("click", function (e) { e.stopPropagation(); });
+    // 选项点击（事件委托）
+    menu.addEventListener("change", function (e) {
+      var v = e.target.getAttribute("data-v");
+      if (v === "__all") {  // 全选/全不选
+        sel[key] = e.target.checked ? getOptions(key).slice() : [];
+        fillMenu(key, menuId);
+      } else {
+        var arr = sel[key];
+        var i = arr.indexOf(v);
+        if (e.target.checked && i < 0) arr.push(v);
+        if (!e.target.checked && i >= 0) arr.splice(i, 1);
+      }
+      updateBtnLabel(key, btnId, labelOf(key));  // 每次取当前语言的标签（语言切换后不回退）
+      if (key === "platforms") refreshPlanOptions();  // 平台多选 → 套餐联动
+      render();
+    });
+  }
+  function getOptions(key) {
+    if (key === "platforms") return meta.platforms;
+    if (key === "models") return meta.models;
+    return plansForSelected();  // 套餐选项 = 所选平台的并集
+  }
+  function plansForSelected() {
+    var plans = [];
+    var pool = sel.platforms.length ? sel.platforms : meta.platforms;
+    for (var i = 0; i < pool.length; i++) {
+      var list = meta.plans_by_platform[pool[i]] || [];
+      for (var j = 0; j < list.length; j++) if (plans.indexOf(list[j]) < 0) plans.push(list[j]);
+    }
+    return plans;
+  }
+  function fillMenu(key, menuId) {
+    var opts = getOptions(key);
+    var html = '<label class="ms-opt ms-all"><input type="checkbox" data-v="__all" ' +
+      (sel[key].length === 0 ? "checked" : "") + '>' + tf("f.selectAll", {name: labelOf(key)}) + '</label>';
+    var all = getOptions(key).slice();
+    var total = {};
+    for (var i = 0; i < all.length; i++) total[all[i]] = 0;
+    for (var j = 0; j < rows.length; j++) {
+      var v = key === "platforms" ? rows[j].platform : (key === "models" ? rows[j].model : rows[j].plan);
+      if (v in total) total[v]++;
+    }
+    for (var k = 0; k < all.length; k++) {
+      var v2 = all[k];
+      html += '<label class="ms-opt"><input type="checkbox" data-v="' + v2 + '" ' +
+        (sel[key].indexOf(v2) >= 0 ? "checked" : "") + '>' + v2 +
+        '<span class="cnt">' + (total[v2] || 0) + '</span></label>';
+    }
+    $(menuId).innerHTML = html || '<div class="ms-empty">' + t("f.noOptions") + '</div>';
+  }
+  function labelOf(key) { return key === "platforms" ? t("f.platform") : (key === "models" ? t("f.model") : t("f.plan")); }
+  function updateBtnLabel(key, btnId, label) {
+    var n = sel[key].length;
+    $(btnId).innerHTML = (n ? tf("f.selected", {name: label, n: n}) : tf("f.allX", {name: label})) + '<span class="caret">▾</span>';
+  }
+  function refreshPlanOptions() {
+    // 清掉已选但不再属于当前平台并集的套餐
+    var valid = plansForSelected();
+    sel.plans = sel.plans.filter(function (p) { return valid.indexOf(p) >= 0; });
+    fillMenu("plans", "msPlanMenu");
+    updateBtnLabel("plans", "msPlanBtn", t("f.plan"));
+  }
+  function inSel(list, v) { return list.length === 0 || list.indexOf(v) >= 0; }
+  // 是否为监测项（platform×model×plan）的最新一条（同日取后插入的）
+  function isLatest(row) {
+    for (var i = 0; i < rows.length; i++) {
+      var p = rows[i];
+      if (p.id === row.id) continue;
+      if (p.platform === row.platform && p.model === row.model && p.plan === row.plan &&
+          (p.captured_at > row.captured_at || (p.captured_at === row.captured_at && p.id > row.id))) return false;
+    }
+    return true;
+  }
+  document.addEventListener("click", function () { closeAllMs(); });
+
+  // ---------- 数据加载 ----------
+  function load() {
+    fetch(PUBLIC ? "data/snapshots.json" : "/api/snapshots").then(function (r) { return r.json(); }).then(function (list) {
+      rows = list;
+      render();
+      scrollToHashTarget();
+    }).catch(function (e) { alert(tf("load.fail", {msg: e.message})); });
+  }
+  function loadMeta() {
+    fetch(PUBLIC ? "data/meta.json" : "/api/meta").then(function (r) { return r.json(); }).then(function (m) {
+      meta = m;
+      meta.plans_by_platform = m.plans_by_platform || {};
+      fillMenu("platforms", "msPlatformMenu");
+      fillMenu("models", "msModelMenu");
+      fillMenu("plans", "msPlanMenu");
+      var dl = function (dlId, items) {
+        var h = "";
+        items.forEach(function (it) { h += "<option>" + it + "</option>"; });
+        $(dlId).innerHTML = h;
+      };
+      dl("dlPlatform", m.platforms); dl("dlModel", m.models); dl("dlPlan", m.plans);
+    }).catch(function () {});
+  }
+
+  // ---------- Modal 开关 ----------
+  var modal = $("modal");
+  function openModal() { modal.hidden = false; $("modalStatus").textContent = ""; }
+  function closeModal() { modal.hidden = true; editingId = null; }
+  $("btnAdd").addEventListener("click", function () {
+    editingId = null;
+    $("modalTitle").textContent = t("modal.addTitle");
+    ["f_captured_at","f_platform","f_plan","f_model","f_fee","f_quota","f_window","f_in_v","f_cache_v","f_out_v","f_in_p","f_cache_p","f_out_p","f_promo","f_source_url","f_note"].forEach(function (id) { $(id).value = ""; });
+    $("f_fee_currency").value = "USD"; $("f_quota_currency").value = "USD"; $("f_currency").value = "USD";
+    openModal();
+  });
+  $("modalClose").addEventListener("click", closeModal);
+  modal.addEventListener("click", function (e) { if (e.target === modal) closeModal(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeModal(); });
+
+  // ---------- 编辑 / 删除 / 弹窗方向（事件委托） ----------
+  // 价格/变化弹窗：悬停时若会超出表格容器底部（最后几行），改为向上弹
+  $("tbody").addEventListener("mouseover", function (e) {
+    var cell = e.target.closest ? e.target.closest(".price-cell, .chg-cell") : null;
+    if (!cell) return;
+    if (!cell.querySelector(".price-tip, .chg-tip")) return;
+    var scroller = document.querySelector(".table-scroll");
+    if (!scroller) return;
+    var scRect = scroller.getBoundingClientRect();
+    cell.classList.toggle("up", cell.getBoundingClientRect().bottom + 80 > scRect.bottom);
+  });
+  $("tbody").addEventListener("click", function (e) {
+    var el = e.target;  // 命名为 el，避免遮蔽全局翻译函数 t()
+    if (el.dataset.edit) {
+      var r = rows.find(function (x) { return String(x.id) === el.dataset.edit; });
+      if (!r) return;
+      editingId = r.id;
+      $("modalTitle").textContent = tf("modal.editTitle", {id: r.id});
+      $("f_captured_at").value = r.captured_at || "";
+      $("f_platform").value = r.platform || "";
+      $("f_plan").value = r.plan || "";
+      $("f_model").value = r.model || "";
+      $("f_fee").value = r.fee === null ? "" : r.fee;
+      $("f_fee_currency").value = r.fee_currency || "USD";
+      $("f_quota").value = r.quota === null ? "" : r.quota;
+      $("f_quota_currency").value = r.quota_currency || "USD";
+      $("f_window").value = r.window || "";
+      $("f_in_v").value = r.in_v === null ? "" : r.in_v;
+      $("f_cache_v").value = r.cache_v === null ? "" : r.cache_v;
+      $("f_out_v").value = r.out_v === null ? "" : r.out_v;
+      $("f_in_p").value = r.in_p === null ? "" : r.in_p;
+      $("f_cache_p").value = r.cache_p === null ? "" : r.cache_p;
+      $("f_out_p").value = r.out_p === null ? "" : r.out_p;
+      $("f_currency").value = r.currency || "USD";
+      $("f_promo").value = r.promo || "";
+      $("f_source_url").value = r.source_url || "";
+      $("f_note").value = r.note || "";
+      openModal();
+      return;
+    }
+    if (el.dataset.del) {
+      var id = el.dataset.del;
+      var row = rows.find(function (x) { return String(x.id) === id; });
+      if (!confirm(tf("del.confirm", {id: id, info: (row ? platName(row.platform) + "·" + row.model + "·" + row.captured_at : "")}))) return;
+      fetch("/api/snapshots/" + id, { method: "DELETE" }).then(function (r) { return r.json(); }).then(function (j) {
+        if (j.ok) { load(); loadMeta(); } else alert(t("del.fail"));
+      });
+      return;
+    }
+    // 点击行其他区域 → 打开该条目的图文卡（排除操作列链接、平台官网链接与价格浮窗触发区）
+    var tr = el.closest ? el.closest("tr") : null;
+    if (!tr) return;
+    if (el.closest(".op") || el.closest("a.plat-link")) return;
+    var rid = tr.getAttribute("data-row-id");
+    if (!rid) return;
+    var snap = rows.find(function (x) { return String(x.id) === String(rid); });
+    if (snap) openRowCard(snap);
+  });
+
+  // ---------- 保存 ----------
+  function val(id) { var v = $(id).value.trim(); return v === "" ? null : v; }
+  function numVal(id) { var v = $(id).value.trim(); return v === "" ? null : Number(v); }
+  $("btnSave").addEventListener("click", function () {
+    var body = {
+      captured_at: val("f_captured_at"), platform: val("f_platform"), plan: val("f_plan"), model: val("f_model"),
+      fee: numVal("f_fee"), fee_currency: $("f_fee_currency").value,
+      quota: numVal("f_quota"), quota_currency: $("f_quota_currency").value,
+      window: val("f_window"),
+      in_v: numVal("f_in_v"), cache_v: numVal("f_cache_v"), out_v: numVal("f_out_v"),
+      in_p: numVal("f_in_p"), cache_p: numVal("f_cache_p"), out_p: numVal("f_out_p"),
+      currency: $("f_currency").value,
+      promo: val("f_promo"), source_url: val("f_source_url"), note: val("f_note")
+    };
+    if (!body.captured_at || !body.platform || !body.model) {
+      $("modalStatus").textContent = t("save.required");
+      return;
+    }
+    var url = editingId ? "/api/snapshots/" + editingId : "/api/snapshots";
+    var method = editingId ? "PUT" : "POST";
+    $("btnSave").disabled = true;
+    $("modalStatus").textContent = t("save.saving");
+    fetch(url, { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j.error) { $("modalStatus").textContent = j.error; return; }
+        $("modalStatus").textContent = t("save.ok");
+        closeModal();
+        load(); loadMeta();
+      })
+      .catch(function (e) { $("modalStatus").textContent = tf("save.fail", {msg: e.message}); })
+      .finally(function () { $("btnSave").disabled = false; });
+  });
+
+  // ---------- 模板与画像 ----------
+  function loadTpls() {
+    // 公共静态模式：只用内置画像（无本地模板 API）
+    if (PUBLIC) {
+      var h0 = "";
+      for (var p0 = 0; p0 < PRESETS.length; p0++) {
+        h0 += '<option value="preset:' + PRESETS[p0].id + '">' + PRESETS[p0].name + '</option>';
+      }
+      h0 += '<option value="custom">' + t("ui.custom") + '</option>';
+      $("tplSelect").innerHTML = h0;
+      $("tplSelect").value = activeProfileKey || "preset:default";
+      return Promise.resolve();
+    }
+    return fetch("/api/templates").then(function (r) { return r.json(); }).then(function (list) {
+      tpls = list;
+      var html = "";
+      for (var p = 0; p < PRESETS.length; p++) {
+        html += '<option value="preset:' + PRESETS[p].id + '">' + PRESETS[p].name + '</option>';
+      }
+      for (var i = 0; i < list.length; i++) {
+        var tp = list[i];  // 命名为 tp，避免遮蔽全局翻译函数 t()
+        var inp = tp.input_pct, outp = tp.output_pct;
+        if (inp === null || inp === undefined || outp === null || outp === undefined) {
+          var rest = Math.max(0, 100 - (Number(tp.cache_rate) || 0));
+          inp = rest * (Number(tp.input_share) || 0) / 100;
+          outp = rest - inp;
+        }
+        html += '<option value="tpl' + tp.id + '" data-cache="' + tp.cache_rate + '" data-peak="' + tp.peak_pct +
+          '" data-input="' + inp + '" data-output="' + outp + '">' + tp.name + '</option>';
+      }
+      html += '<option value="custom">' + t("ui.custom") + '</option>';
+      $("tplSelect").innerHTML = html;
+      var key = activeProfileKey;
+      if (!key || !$("tplSelect").querySelector('option[value="' + key + '"]')) {
+        var mid = matchPreset(params);
+        key = mid === "custom" ? "custom" : "preset:" + mid;
+      }
+      $("tplSelect").value = key;
+    }).catch(function () {});
+  }
+  function applyParams(cache, peak, input, output) {
+    params.cachePct = Math.max(0, Math.min(100, cache));
+    params.inputPct = Math.max(0, Math.min(100, input));
+    params.outputPct = Math.max(0, Math.min(100, output));
+    params.peakPct = Math.max(0, Math.min(100, peak));
+    var rest = 100 - params.cachePct;
+    var total = params.inputPct + params.outputPct;
+    if (total > 0) {
+      params.inputPct = round2(rest * params.inputPct / total);
+      params.outputPct = round2(rest - params.inputPct);
+    } else {
+      params.inputPct = round2(rest);
+      params.outputPct = 0;
+    }
+    syncAlgoInputs();
+    render();
+  }
+  function applyPreset(id) {
+    var p = PRESET_MAP[id];
+    if (!p) return;
+    activeProfileKey = "preset:" + id;
+    applyParams(p.cachePct, p.peakPct, p.inputPct, p.outputPct);
+  }
+  $("tplSelect").addEventListener("change", function () {
+    var v = this.value;
+    if (v === "custom") { activeProfileKey = "custom"; return; }
+    if (v.indexOf("preset:") === 0) { applyPreset(v.slice(7)); return; }
+    if (v.indexOf("tpl") === 0) {
+      var opt = this.options[this.selectedIndex];
+      activeProfileKey = v;
+      applyParams(parseFloat(opt.dataset.cache), parseFloat(opt.dataset.peak),
+        parseFloat(opt.dataset.input), parseFloat(opt.dataset.output));
+    }
+  });
+  $("btnTplSave").addEventListener("click", function () {
+    var name = $("tplName").value.trim() || paramsLabel();
+    var body = {
+      name: name,
+      cache_rate: params.cachePct,
+      peak_pct: params.peakPct,
+      input_pct: params.inputPct,
+      output_pct: params.outputPct
+    };
+    fetch("/api/templates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j.error) { alert(j.error); return; }
+        $("tplName").value = "";
+        activeProfileKey = "tpl" + j.id;
+        loadTpls().then(function () { $("tplSelect").value = "tpl" + j.id; });
+      })
+      .catch(function (e) { alert(tf("tpl.saveFail", {msg: e.message})); });
+  });
+  $("btnTplDel").addEventListener("click", function () {
+    var v = $("tplSelect").value;
+    if (v === "custom" || v.indexOf("preset:") === 0) { alert(t("tpl.builtin")); return; }
+    var name = $("tplSelect").options[$("tplSelect").selectedIndex].text;
+    if (!confirm(tf("tpl.delConfirm", {name: name}))) return;
+    fetch("/api/templates/" + v.slice(3), { method: "DELETE" })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j.ok) {
+          activeProfileKey = "preset:default";
+          loadTpls();
+          applyParams(95, 60, 4, 1);
+        } else alert(t("tpl.delFail"));
+      });
+  });
+  [["pCachePct", "cachePct"], ["pInputPct", "inputPct"], ["pOutputPct", "outputPct"]].forEach(function (pair) {
+    $(pair[0]).addEventListener("change", function () {
+      activeProfileKey = null;
+      setCompositionValue(params, pair[1], parseFloat(this.value) || 0);
+      syncAlgoInputs();
+      render();
+    });
+  });
+  $("pPeak").addEventListener("change", function () {
+    activeProfileKey = null;
+    params.peakPct = Math.max(0, Math.min(100, parseFloat(this.value) || 0));
+    syncAlgoInputs();
+    render();
+  });
+  $("pCur").addEventListener("change", function () {
+    params.currency = this.value === "CNY" ? "CNY" : "USD";
+    render();
+  });
+  $("pFx").addEventListener("change", function () {
+    var v = parseFloat(this.value);
+    if (!isNaN(v) && v > 0) params.fx = v;
+    render();
+  });
+  function syncAlgoInputs() {
+    $("pCachePct").value = pctStr(params.cachePct);
+    $("pInputPct").value = pctStr(params.inputPct);
+    $("pOutputPct").value = pctStr(params.outputPct);
+    $("pPeak").value = params.peakPct;
+    $("pPeakRatio").textContent = ratioStr(params.peakPct) + ":" + ratioStr(100 - params.peakPct);
+    $("pTotal").textContent = pctStr(params.cachePct + params.inputPct + params.outputPct);
+    var key = activeProfileKey;
+    if (!key) {
+      var mid = matchPreset(params);
+      key = mid === "custom" ? "custom" : "preset:" + mid;
+    }
+    if (!$("tplSelect").querySelector('option[value="' + key + '"]')) {
+      var mid2 = matchPreset(params);
+      key = mid2 === "custom" ? "custom" : "preset:" + mid2;
+    }
+    $("tplSelect").value = key;
+    $("pCur").value = params.currency;
+    $("pFx").value = params.fx;
+  }
+
+  // ---------- 表头排序 ----------
+  var sortThs = document.querySelectorAll("th.sortable");
+  for (var si = 0; si < sortThs.length; si++) {
+    (function (th) {
+      th.addEventListener("click", function () {
+        var k = th.getAttribute("data-sort");
+        if (sort.key === k) sort.dir = -sort.dir;
+        else { sort.key = k; sort.dir = -1; }  // 换列默认降序（最新/最大在前）
+        render();
+      });
+    })(sortThs[si]);
+  }
+
+  // ---------- 筛选 / 导出 ----------
+  initMs("platforms", "msPlatformBtn", "msPlatformMenu", t("f.platform"));
+  initMs("models", "msModelBtn", "msModelMenu", t("f.model"));
+  initMs("plans", "msPlanBtn", "msPlanMenu", t("f.plan"));
+  $("btnRefresh").addEventListener("click", function () { load(); loadMeta(); });
+  $("btnLatest").addEventListener("click", function () {
+    viewLatest = !viewLatest;
+    $("btnLatest").classList.toggle("on", viewLatest);
+    render();
+  });
+  // ---------- 心跳保活 ----------
+  // 语义：只要本页面还开在浏览器里（无论是否切到别的标签页），就每 30 秒 ping 一次，
+  //       服务因此不会退出；关闭页面后心跳停止，服务在 5 分钟无请求后自动退出。
+  // 注意：这里刻意不判断 document.visibilityState —— 切到后台标签页同样保活。
+  // 公共静态模式无本地服务，不做心跳。
+  var hbTimer = null;
+  if (!PUBLIC) {
+    hbTimer = setInterval(function () {
+      fetch("/api/ping", { cache: "no-store" }).catch(function () { /* 服务已停止时静默 */ });
+    }, 30000);
+    // 从浏览器往返缓存（bfcache）恢复时，定时器可能已被浏览器暂停，补一次心跳
+    window.addEventListener("pageshow", function (e) {
+      if (e.persisted) fetch("/api/ping", { cache: "no-store" }).catch(function () {});
+    });
+  }
+
+  // ---------- 停止服务（配合「打开监控台.vbs」的静默启动：随时用完即关） ----------
+  $("btnShutdown").addEventListener("click", function () {
+    if (!confirm(t("shutdown.confirm"))) return;
+    clearInterval(hbTimer);   // 先停心跳，否则会与服务关闭抢跑
+    var btn = $("btnShutdown");
+    btn.disabled = true;
+    btn.textContent = t("shutdown.stopping");
+    fetch("/api/shutdown", { method: "POST" })
+      .then(function () {
+        document.body.innerHTML = '<div class="stopped">' + t("shutdown.done") + '</div>';
+      })
+      .catch(function () {
+        // 服务已先一步关闭时 fetch 会抛错，同样视为成功
+        document.body.innerHTML = '<div class="stopped">' + t("shutdown.doneQuick") + '</div>';
+      });
+  });
+
+  $("btnExport").addEventListener("click", function () {
+    if (!rows.length) { alert(t("export.none")); return; }
+    var cols = ["id","captured_at","platform","plan","model","fee","fee_currency","quota","quota_currency","window","in_v","cache_v","out_v","in_p","cache_p","out_p","currency","promo","source_url","note"];
+    var lines = [cols.join(",")];
+    rows.forEach(function (r) {
+      lines.push(cols.map(function (c) {
+        var v = r[c];
+        if (v === null || v === undefined) return "";
+        var s = String(v);
+        return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(","));
+    });
+    var blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "snapshots_export.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  // ---------- 图文卡：数据驱动构建 ----------
+  function windowParts(w) {
+    if (!w) return null;
+    var parts = w.split("/").map(function (x) { return x.trim(); }).filter(Boolean);
+    return parts.length ? parts : null;
+  }
+  // 窗口限制 → 两行显示（主值 + 其余段合并），控制 cell 行数使三列等高
+  function windowLines(w) {
+    var wp = windowParts(w);
+    if (!wp) return null;
+    return { first: wp[0], rest: wp.slice(1).join(" · ") };
+  }
+  function windowCellHtml() {
+    var wl = windowLines(arguments[0]);
+    if (!wl) return '<div class="n">—</div>';
+    var h = '<div class="n">' + wl.first + '</div>';
+    if (wl.rest) h += '<div class="n2">' + wl.rest + '</div>';
+    return h;
+  }
+  function snapshotOf(platform, model, plan) {
+    var best = null;
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (r.platform === platform && r.model === model && r.plan === plan &&
+          (!best || r.captured_at > best.captured_at || (r.captured_at === best.captured_at && r.id > best.id))) best = r;
+    }
+    return best;
+  }
+  function officialRow(model) {
+    var best = null;
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (r.platform === "官方API" && r.model === model &&
+          (!best || r.captured_at > best.captured_at || (r.captured_at === best.captured_at && r.id > best.id))) best = r;
+    }
+    return best;
+  }
+  // 在给定画像下计算每亿价（实际月费口径）与总额度；不改变全局参数
+  function algoPrice(r, profile) {
+    var saved = params;
+    params = Object.assign({}, params, profile);
+    try {
+      return { price: displayPer100M(r), cap: capacityFor(r) };
+    } finally {
+      params = saved;
+    }
+  }
+  function algoTag(profile, hasPeak) {
+    var s = compositionStr(profile);
+    if (hasPeak) s += " · " + t("unit.peakValley") + " " + ratioStr(profile.peakPct) + ":" + ratioStr(100 - profile.peakPct);
+    return s;
+  }
+  function algoExpl(profile, hasPeak) {
+    return tf("card.expl", {c: pctStr(profile.cachePct), i: pctStr(profile.inputPct), o: pctStr(profile.outputPct),
+      peak: hasPeak ? tf("card.expl.peak", {pv: ratioStr(profile.peakPct) + ":" + ratioStr(100 - profile.peakPct)}) : t("card.expl.nopeak")});
+  }
+  // 矩阵行标签：有峰谷 = 谷/峰两行（带时段说明）；无峰谷 = 单行"统一价"
+  // dual=true 时按最多行数补空占位行，使双卡左右列后续模块 y 起点对齐
+  function mtxRows(r, cur, dual) {
+    var hasPeak = r.in_p !== null;
+    var rows = [];
+    if (!hasPeak) {
+      rows.push('<tr><td>' + t("mtx.flat") + '</td><td>' + dualFmt(r.in_v, cur) + '</td><td>' + dualFmt(r.cache_v, cur) + '</td><td>' + dualFmt(r.out_v, cur) + '</td></tr>');
+    } else {
+      rows.push('<tr><td>' + t("mtx.valley") + '</td><td>' + dualFmt(r.in_v, cur) + '</td><td>' + dualFmt(r.cache_v, cur) + '</td><td>' + dualFmt(r.out_v, cur) + '</td></tr>');
+      rows.push('<tr class="alt"><td>' + t("mtx.peak") + '</td><td>' + dualFmt(r.in_p, cur) + '</td><td>' + dualFmt(r.cache_p, cur) + '</td><td>' + dualFmt(r.out_p, cur) + '</td></tr>');
+    }
+    if (dual) {
+      // 双卡对齐：补到 2 数据行；补位行复用数据行结构（隐藏文字），保证行高与真实行一致
+      while (rows.length < 2) {
+        rows.push('<tr class="pad"><td style="visibility:hidden">' + t("mtx.flat") + '</td><td style="visibility:hidden">' + dualFmt(r.in_v, cur) + '</td><td style="visibility:hidden">' + dualFmt(r.cache_v, cur) + '</td><td style="visibility:hidden">' + dualFmt(r.out_v, cur) + '</td></tr>');
+      }
+    }
+    return rows.join("");
+  }
+  // 矩阵下机制说明：按数据生成（峰谷说明）
+  function mtxNote(r) {
+    var hasPeak = r.in_p !== null;
+    return hasPeak ? t("mtx.note.peak") : t("mtx.note.flat");
+  }
+  // 默认底部注释：按数据生成（计价方式 × 峰谷）
+  function defaultNote(r) {
+    var parts = [];
+    parts.push(r.fee !== null ? t("note.sub") : t("note.payg"));
+    parts.push(r.in_p !== null ? t("note.peak") : t("note.flat"));
+    return parts.join(LANG === "en" ? "; " : "；") + (LANG === "en" ? "." : "。");
+  }
+  // 双币种：主值（面板当前币种，无符号）+ 副值小字（另一币种，带符号）；v 为快照原始币种值
+  function dualFmt(v, origCcy, dMain, dAlt) {
+    if (v === null || v === undefined) return "—";
+    var mainV = toDisp(v, origCcy);
+    var mainS = fmtNum(mainV, dMain === undefined ? 3 : dMain);
+    var altS = params.currency === "CNY"
+      ? "$" + fmtNum(mainV / params.fx, dAlt === undefined ? 2 : dAlt)
+      : "¥" + fmtNum(mainV * params.fx, dAlt === undefined ? 1 : dAlt);
+    return mainS + '<span class="alt">' + altS + "</span>";
+  }
+  // 双币种金额：主值带符号 + 副值小字带符号
+  function dualMoneyFmt(v, origCcy, dMain, dAlt) {
+    if (v === null || v === undefined) return "—";
+    var mainV = toDisp(v, origCcy);
+    var mainS = (params.currency === "CNY" ? "¥" : "$") + fmtNum(mainV, dMain === undefined ? 1 : dMain);
+    var altS = params.currency === "CNY"
+      ? "$" + fmtNum(mainV / params.fx, dAlt === undefined ? 2 : dAlt)
+      : "¥" + fmtNum(mainV * params.fx, dAlt === undefined ? 1 : dAlt);
+    return mainS + '<span class="alt">' + altS + "</span>";
+  }
+
+  // ---------- 图文卡 · 卡内参数（只影响当前卡，不改全局） ----------
+  function cardParamsHTML() {
+    var opts = "";
+    for (var i = 0; i < PRESETS.length; i++) opts += '<option value="' + PRESETS[i].id + '">' + PRESETS[i].name + '</option>';
+    opts += '<option value="custom">' + t("ui.custom") + '</option>';
+    return '<span class="cp-label">' + t("cp.label") + '</span>' +
+      '<label>' + t("cp.preset") + ' <select data-cp="preset">' + opts + '</select></label>' +
+      '<label>' + t("cp.cacheReads") + ' <input type="number" data-cp="cache" min="0" max="100" step="0.1" title="' + t("cp.pctTitle") + '">%</label>' +
+      '<label>' + t("cp.plainInput") + ' <input type="number" data-cp="input" min="0" max="100" step="0.1" title="' + t("cp.pctTitle") + '">%</label>' +
+      '<label>' + t("cp.output") + ' <input type="number" data-cp="output" min="0" max="100" step="0.1" title="' + t("cp.pctTitle") + '">%</label>' +
+      '<span class="cp-total">' + t("cp.total") + ' <b data-cp="total">100</b>%</span>' +
+      '<label>' + t("cp.peakShare") + ' <input type="number" data-cp="peak" min="0" max="100" step="1">%</label>' +
+      '<button type="button" class="btn-ghost cp-reset" data-cp="reset">' + t("cp.reset") + '</button>';
+  }
+  function initCardParams(box, state, onChange) {
+    if (!box || !state) return;
+    box.innerHTML = cardParamsHTML();
+    var preset = box.querySelector('[data-cp="preset"]');
+    var cache = box.querySelector('[data-cp="cache"]');
+    var input = box.querySelector('[data-cp="input"]');
+    var output = box.querySelector('[data-cp="output"]');
+    var peak = box.querySelector('[data-cp="peak"]');
+    var total = box.querySelector('[data-cp="total"]');
+    function sync() {
+      preset.value = matchPreset(state);
+      cache.value = pctStr(state.cachePct);
+      input.value = pctStr(state.inputPct);
+      output.value = pctStr(state.outputPct);
+      peak.value = state.peakPct;
+      total.textContent = pctStr(state.cachePct + state.inputPct + state.outputPct);
+    }
+    function commit() { sync(); onChange(); }
+    preset.addEventListener("change", function () {
+      if (this.value === "custom") return;
+      var p = PRESET_MAP[this.value];
+      if (!p) return;
+      state.cachePct = p.cachePct; state.inputPct = p.inputPct;
+      state.outputPct = p.outputPct; state.peakPct = p.peakPct;
+      commit();
+    });
+    [["cache", "cachePct"], ["input", "inputPct"], ["output", "outputPct"]].forEach(function (pair) {
+      box.querySelector('[data-cp="' + pair[0] + '"]').addEventListener("change", function () {
+        setCompositionValue(state, pair[1], parseFloat(this.value) || 0);
+        commit();
+      });
+    });
+    peak.addEventListener("change", function () {
+      state.peakPct = Math.max(0, Math.min(100, parseFloat(this.value) || 0));
+      commit();
+    });
+    box.querySelector('[data-cp="reset"]').addEventListener("click", function () {
+      state.cachePct = state.initial.cachePct;
+      state.inputPct = state.initial.inputPct;
+      state.outputPct = state.initial.outputPct;
+      state.peakPct = state.initial.peakPct;
+      commit();
+    });
+    sync();
+  }
+  function referenceProfile(current) {
+    return sameProfile(current, DEFAULT_PROFILE) ? PRESETS[2] : DEFAULT_PROFILE;
+  }
+  function makeCardState() {
+    var state = cloneParams(params);
+    state.initial = cloneParams(params);
+    return state;
+  }
+  function withCardParams(state, fn) {
+    var saved = params;
+    params = Object.assign({}, params, cloneParams(state));
+    try { return fn(); } finally { params = saved; }
+  }
+  function fitCardStage(stage) {
+    if (!stage) return;
+    var card = stage.querySelector(".c-card");
+    if (!card) return;
+    var fit = stage.querySelector(".card-fit");
+    if (!fit) {
+      fit = document.createElement("div");
+      fit.className = "card-fit";
+      card.parentNode.insertBefore(fit, card);
+      fit.appendChild(card);
+    }
+    var avail = Math.min(480, Math.max(0, window.innerWidth * 0.94 - 44));
+    var scale = Math.min(1, avail / 480);
+    fit.style.width = "480px";
+    fit.style.transform = "scale(" + scale + ")";
+    fit.style.transformOrigin = "top center";
+    stage.style.height = Math.round(640 * scale) + "px";
+  }
+
+  // 单模型卡
+  function buildSingleCard(r, note) {
+    var cur = r.currency || "USD";
+    var hasPeak = r.in_p !== null;
+    var current = { cachePct: params.cachePct, inputPct: params.inputPct, outputPct: params.outputPct, peakPct: params.peakPct };
+    var ref = referenceProfile(current);
+    var d1 = { price: displayPer100M(r), cap: capacityFor(r) };
+    var dRef = algoPrice(r, ref);
+    var off = officialRow(r.model);
+    // 排除自身（官方API 快照比对自己无意义）；订阅渠道才有"对比直售"意义
+    var offP = (off && off.id !== r.id) ? toUSDBasis(per100M(off), off.currency) : null;
+    var feeUSD = (r.fee !== null && r.fee_currency === "USD") ? r.fee : (r.fee !== null ? r.fee / params.fx : null);
+    var breakeven = (feeUSD !== null && d1.price !== null) ? feeUSD / toUSDBasis(per100M(r), cur) : null;
+    var subPriceUSD = d1.price !== null ? toUSDBasis(d1.price, cur) : null;
+    var vsOfficial = (offP && subPriceUSD) ? offP / subPriceUSD : null;
+
+    var mtx = mtxRows(r, cur);
+    var algos =
+      '<div class="c-algo"><div class="head"><span class="tag"><b>' + t("card.tag.current") + '</b> ' + algoTag(current, hasPeak) + '</span>' +
+        '<span class="num">' + dualMoneyFmt(d1.price, cur) + '<span class="unit"> /' + t("unit.yi") + '</span></span></div>' +
+        '<div class="expl">' + algoExpl(current, hasPeak) + '</div>' +
+        '<div class="sub">' + tf("card.sub.basis", {cap: (d1.cap !== null ? tf("cap.val", {n: fmtNum(d1.cap, 1)}) : (r.fee !== null ? "—" : t("cap.none")))}) + '</div></div>';
+    algos +=
+      '<div class="c-algo"><div class="head"><span class="tag"><b>' + t("card.tag.ref") + '</b> ' + algoTag(ref, hasPeak) + '</span>' +
+        '<span class="num">' + dualMoneyFmt(dRef.price, cur) + '<span class="unit"> /' + t("unit.yi") + '</span></span></div>' +
+        '<div class="expl">' + algoExpl(ref, hasPeak) + '</div>' +
+        '<div class="sub">' + tf("card.sub.basis", {cap: (dRef.cap !== null ? tf("cap.val", {n: fmtNum(dRef.cap, 1)}) : (r.fee !== null ? "—" : t("cap.none")))}) + '</div></div>';
+
+    var info =
+      '<div class="row"><span>' + t("card.info.breakeven") + '</span><span class="v">' + (r.fee !== null ? (breakeven !== null ? tf("card.info.breakevenVal", {n: fmtNum(breakeven, 2)}) : "—") : '<em>' + t("card.info.paygNodata") + '</em>') + '</span></div>' +
+      '<div class="row"><span>' + tf("card.info.vsOfficial", {profile: paramsLabel(current)}) + '</span><span class="v">' + (vsOfficial !== null ? tf("card.info.vsOfficialVal", {n: fmtNum(vsOfficial, 0)}) : (off && off.id === r.id ? '<em>' + t("card.info.isOfficial") + '</em>' : "—")) + '</span></div>' +
+      '<div class="row"><span>' + t("card.info.mode") + '</span><span class="v">' + (r.fee !== null ? t("card.info.sub") : t("card.info.payg")) + '</span></div>';
+
+    var srcLine = tf("card.src", {src: (r.source_url || "—"), fx: params.fx,
+      ccy: (params.currency === "CNY" ? t("card.srcCcyConv") : t("card.srcCcyShow"))});
+
+    return '<div class="c-card">' +
+      '<div class="c-head"><div class="cat">' + t("card.cat.profile") + ' · ' + IMAGE_SIGNATURE + '</div>' +
+      '<div class="model">' + r.model + '</div>' +
+      '<div class="meta"><b>' + platName(r.platform) + ' · ' + (planName(r.plan) || "—") + '</b>' + (r.promo ? ' <span class="cpromo">' + promoDisplay(r.promo) + '</span>' : '') + tf("card.asof", {date: r.captured_at}) + '</div></div>' +
+      '<div class="c-main">' +
+        '<div class="c-sec">' + tf("card.sec.mtx", {sign: (params.currency === "CNY" ? "¥" : "$")}) + '<span class="rt">' + (params.currency === "CNY" ? tf("card.sec.mtxUsd", {fx: params.fx}) : "") + '</span></div>' +
+        '<table class="c-price"><tr><th></th><th>' + t("mtx.hIn") + '</th><th>' + t("mtx.hCache") + '</th><th>' + t("mtx.hOut") + '</th></tr>' + mtx + '</table>' +
+        '<p class="c-note9">' + mtxNote(r) + '</p>' +
+        '<div class="c-sec">' + t("card.sec.algo") + '</div>' +
+        '<div class="c-algos">' + algos + '</div>' +
+        (info ? '<div class="c-sec">' + t("card.sec.key") + '</div><div class="c-info">' + info + '</div>' : "") +
+        '<div class="c-subs">' +
+          '<div class="cell"><div class="l">' + t("card.subs.fee") + '</div><div class="n">' + (r.fee !== null ? dualMoneyFmt(feeUSD, "USD", 0, 0) : "—") + '</div></div>' +
+          '<div class="cell"><div class="l">' + t("card.subs.quota") + '</div><div class="n">' + (r.quota !== null ? dualMoneyFmt(r.quota, r.quota_currency || "USD", 0, 0) : "—") + '</div></div>' +
+          '<div class="cell"><div class="l">' + t("card.subs.window") + '</div>' + windowCellHtml(winDisplay(r.window)) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="c-foot"><div class="note">' + (note || defaultNote(r)) + '</div>' +
+      '<div class="src">' + srcLine + '</div></div>' +
+    '</div>';
+  }
+
+  // 双模型卡（同模型跨渠道）
+  function buildDualCard(rA, rB, note) {
+    var current = { cachePct: params.cachePct, inputPct: params.inputPct, outputPct: params.outputPct, peakPct: params.peakPct };
+    var ref = referenceProfile(current);
+    var dA1 = algoPrice(rA, current), dB1 = algoPrice(rB, current);
+    var dA2 = algoPrice(rA, ref), dB2 = algoPrice(rB, ref);
+    // 更优判定：当前画像与参考画像方向一致才标（避免单一口径误导）
+    var better = null;
+    if (dA1.price !== null && dB1.price !== null && dA2.price !== null && dB2.price !== null) {
+      var a1 = toUSDBasis(dA1.price, rA.currency) <= toUSDBasis(dB1.price, rB.currency);
+      var a2 = toUSDBasis(dA2.price, rA.currency) <= toUSDBasis(dB2.price, rB.currency);
+      if (a1 === a2) better = a1 ? "A" : "B";
+    }
+    function col(r, isBetter) {
+      var cur = r.currency || "USD";
+      var hasPeak = r.in_p !== null;
+      var d1 = algoPrice(r, current);
+      var d2 = algoPrice(r, ref);
+      var feeUSD = (r.fee !== null && r.fee_currency === "USD") ? r.fee : (r.fee !== null ? r.fee / params.fx : null);
+      var breakeven = (feeUSD !== null && d1.price !== null) ? feeUSD / toUSDBasis(per100M(r), cur) : null;
+      var mtx = mtxRows(r, cur, true);
+      var algos =
+        '<div class="c-algo"><div class="tag"><b>' + t("card.tag.currentShort") + '</b> ' + algoTag(current, hasPeak) + '</div>' +
+          '<div class="row2"><span class="num">' + dualMoneyFmt(d1.price, cur) + '<span class="unit">' + t("unit.per100m") + '</span></span><span class="cap">' + tf("card.sub.basisShort", {cap: (d1.cap !== null ? tf("cap.short", {n: fmtNum(d1.cap, 1)}) : "—")}) + '</span></div></div>' +
+        '<div class="c-algo"><div class="tag"><b>' + t("card.tag.refShort") + '</b> ' + algoTag(ref, hasPeak) + '</div>' +
+          '<div class="row2"><span class="num">' + dualMoneyFmt(d2.price, cur) + '<span class="unit">' + t("unit.per100m") + '</span></span><span class="cap">' + tf("card.sub.basisShort", {cap: (d2.cap !== null ? tf("cap.short", {n: fmtNum(d2.cap, 1)}) : "—")}) + '</span></div></div>';
+      return '<div class="col' + (isBetter ? " better" : "") + '">' +
+        '<div class="col-head"><div class="plat">' + platName(r.platform) + '</div>' +
+        '<div class="plan">' + (planName(r.plan) || "—") + (r.promo ? ' <span class="promo">' + promoDisplay(r.promo) + '</span>' : "") + '</div></div>' +
+        '<div class="c-sec">' + t("card.sec.mtxShort") + '</div>' +
+        '<table class="c-price"><tr><th></th><th>' + t("mtx.hInS") + '</th><th>' + t("mtx.hCacheS") + '</th><th>' + t("mtx.hOutS") + '</th></tr>' + mtx + '</table>' +
+        '<div class="c-sec">' + t("card.sec.algoShort") + '</div>' + algos +
+        '<div class="c-subs">' +
+          '<div class="cell"><div class="l">' + t("card.subs.fee") + '</div><div class="n">' + (r.fee !== null ? dualMoneyFmt(feeUSD, "USD", 0, 0) : "—") + '</div></div>' +
+          '<div class="cell"><div class="l">' + t("card.subs.quota") + '</div><div class="n">' + (r.quota !== null ? dualMoneyFmt(r.quota, r.quota_currency || "USD", 0, 0) : "—") + '</div></div>' +
+          '<div class="cell"><div class="l">' + t("card.subs.window") + '</div>' + windowCellHtml(winDisplay(r.window)) + '</div>' +
+          '<div class="cell"><div class="l">' + t("card.subs.breakeven") + '</div><div class="n">' + (breakeven !== null ? tf("cap.short", {n: fmtNum(breakeven, 2)}) : (r.fee !== null ? "—" : t("card.info.paygNodata"))) + '</div></div>' +
+        '</div>' +
+      '</div>';
+    }
+    // 币种描述：按两渠道原始币种动态生成（同为 USD 且显示 CNY 才是"USD 折算"；混合币种或显示 USD 则中性描述）
+    var ccys = [rA.currency || "USD", rB.currency || "USD"];
+    var ccyDesc;
+    if (params.currency === "CNY" && ccys[0] === "USD" && ccys[1] === "USD") ccyDesc = t("card.ccy.usdConv");
+    else if (ccys[0] === ccys[1]) ccyDesc = ccys[0] === "CNY" ? t("card.ccy.cny") : t("card.ccy.usd");
+    else ccyDesc = t("card.ccy.mixed");
+    var srcLine = tf("card.srcDual", {a: (rA.source_url || "—"), b: (rB.source_url || "—"), fx: params.fx});
+    return '<div class="c-card c-dual">' +
+      '<div class="c-head"><div class="cat">' + t("card.cat.compare") + ' · ' + IMAGE_SIGNATURE + '</div>' +
+      '<div class="model">' + rA.model + '</div>' +
+      '<div class="meta">' + tf("card.metaFx", {date: rA.captured_at, fx: params.fx,
+        unit: (params.currency === "CNY" ? t("card.metaFxUnitCny") : t("card.metaFxUnit")), ccyDesc: ccyDesc}) + '</div></div>' +
+      '<div class="c-main">' + col(rA, better === "A") + col(rB, better === "B") + '</div>' +
+      '<div class="c-foot"><div class="note">' + (note || defaultNote(rA) + t("note.dualTail")) + '</div>' +
+      '<div class="src">' + srcLine + '</div></div>' +
+    '</div>';
+  }
+
+  // ---------- 生成对比卡：配置弹窗交互（仅双渠道对比） ----------
+  var cardCfgModal = $("cardCfgModal"), cardPrevModal = $("cardPrevModal");
+  var dualCardA = null, dualCardB = null, dualCardNote = "", dualCardState = null;
+  function renderDualCardPreview() {
+    if (!dualCardA || !dualCardB || !dualCardState) return;
+    withCardParams(dualCardState, function () {
+      $("cardStage").innerHTML = buildDualCard(dualCardA, dualCardB, dualCardNote);
+    });
+    fitCardStage($("cardStage"));
+    $("cardSaveStatus").textContent = "";
+  }
+  function cardFillModel() {
+    var h = '<option value="">' + t("cc.pickModelPh") + '</option>';
+    for (var i = 0; i < meta.models.length; i++) h += '<option>' + meta.models[i] + '</option>';
+    $("cc_model").innerHTML = h;
+  }
+  function cardModelPlatforms(model) {
+    var set = [];
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].model === model && set.indexOf(rows[i].platform) < 0) set.push(rows[i].platform);
+    }
+    return set.sort();
+  }
+  function cardModelPlans(model, platform) {
+    var set = [];
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].model === model && rows[i].platform === platform && set.indexOf(rows[i].plan) < 0) set.push(rows[i].plan);
+    }
+    return set.sort();
+  }
+  function cardFillPlat(selId, model) {
+    var h = '<option value="">' + t("cc.pickPlatPh") + '</option>';
+    cardModelPlatforms(model).forEach(function (p) { h += '<option>' + p + '</option>'; });
+    $(selId).innerHTML = h;
+    $(selId).value = "";
+    if (selId === "cc_platA2") cardFillPlan("cc_planA2", model, "");
+    if (selId === "cc_platB2") cardFillPlan("cc_planB2", model, "");
+  }
+  function cardFillPlan(selId, model, platform) {
+    var h = '<option value="">' + t("cc.pickPlanPh") + '</option>';
+    cardModelPlans(model, platform).forEach(function (p) { h += '<option>' + p + '</option>'; });
+    $(selId).innerHTML = h;
+    $(selId).value = "";
+  }
+  $("btnCard").addEventListener("click", function () {
+    cardFillModel();
+    dualCardState = null;
+    cardCfgModal.hidden = false;
+    $("ccStatus").textContent = "";
+  });
+  $("cardCfgClose").addEventListener("click", function () { cardCfgModal.hidden = true; });
+  cardCfgModal.addEventListener("click", function (e) { if (e.target === cardCfgModal) cardCfgModal.hidden = true; });
+  $("cc_model").addEventListener("change", function () {
+    var m = this.value;
+    cardFillPlat("cc_platA2", m); cardFillPlat("cc_platB2", m);
+  });
+  $("cc_platA2").addEventListener("change", function () { cardFillPlan("cc_planA2", $("cc_model").value, this.value); });
+  $("cc_platB2").addEventListener("change", function () { cardFillPlan("cc_planB2", $("cc_model").value, this.value); });
+
+  $("ccGenerate").addEventListener("click", function () {
+    var m = $("cc_model").value;
+    if (!m) { $("ccStatus").textContent = t("cc.pickModel"); return; }
+    var note = $("cc_note").value.trim();
+    var pA = $("cc_platA2").value, plA = $("cc_planA2").value;
+    var pB = $("cc_platB2").value, plB = $("cc_planB2").value;
+    if (!pA || !plA || !pB || !plB) { $("ccStatus").textContent = t("cc.pickTwo"); return; }
+    var rA = snapshotOf(pA, m, plA), rB = snapshotOf(pB, m, plB);
+    if (!rA || !rB) { $("ccStatus").textContent = t("cc.noSnap"); return; }
+    dualCardA = rA; dualCardB = rB; dualCardNote = note;
+    if (!dualCardState) dualCardState = makeCardState();
+    initCardParams(document.querySelector('[data-cp-box="prev"]'), dualCardState, renderDualCardPreview);
+    renderDualCardPreview();
+    $("cardSaveStatus").textContent = "";
+    cardCfgModal.hidden = true;
+    cardPrevModal.hidden = false;
+  });
+  $("cardPrevClose").addEventListener("click", function () { cardPrevModal.hidden = true; });
+  $("cardBack").addEventListener("click", function () {
+    cardPrevModal.hidden = true;
+    cardCfgModal.hidden = false;   // 返回配置弹窗，已选值保留
+  });
+  cardPrevModal.addEventListener("click", function (e) { if (e.target === cardPrevModal) cardPrevModal.hidden = true; });
+
+  // ---------- 条目图文卡（点击表格行 → 该条的完整画像卡） ----------
+  var rowCardModal = $("rowCardModal");
+  var rowCardRow = null;   // 当前查看的行（保存时作为文件名）
+  var rowCardState = null;
+  function renderRowCardPreview() {
+    if (!rowCardRow || !rowCardState) return;
+    withCardParams(rowCardState, function () {
+      $("rowCardStage").innerHTML = buildSingleCard(rowCardRow, "");
+    });
+    fitCardStage($("rowCardStage"));
+    $("rowCardStatus").textContent = "";
+  }
+  function openRowCard(r) {
+    rowCardRow = r;
+    rowCardState = makeCardState();
+    $("rowCardTitle").textContent = platName(r.platform) + " · " + (planName(r.plan) || "—") + " · " + r.model;
+    initCardParams(document.querySelector('[data-cp-box="row"]'), rowCardState, renderRowCardPreview);
+    renderRowCardPreview();
+    $("rowCardStatus").textContent = "";
+    rowCardModal.hidden = false;
+  }
+  $("rowCardClose").addEventListener("click", function () { rowCardModal.hidden = true; });
+  rowCardModal.addEventListener("click", function (e) { if (e.target === rowCardModal) rowCardModal.hidden = true; });
+  window.addEventListener("resize", function () {
+    if (!rowCardModal.hidden) fitCardStage($("rowCardStage"));
+    if (!cardPrevModal.hidden) fitCardStage($("cardStage"));
+  });
+  $("rowCardSave").addEventListener("click", function () {
+    var card = $("rowCardStage").querySelector(".c-card");
+    if (!card) return;
+    $("rowCardSave").disabled = true;
+    $("rowCardStatus").textContent = t("status.gen");
+    var name = rowCardRow
+      ? (rowCardRow.platform + "-" + (rowCardRow.plan || "") + "-" + rowCardRow.model + ".png").replace(/[\\/:*?"<>|\s]+/g, "_")
+      : "plan_card.png";
+    captureCard(card, 3).then(function (url) {
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      $("rowCardStatus").textContent = t("status.ok");
+    }).catch(function (e) {
+      $("rowCardStatus").textContent = tf("status.fail", {msg: e.message});
+    }).finally(function () { $("rowCardSave").disabled = false; });
+  });
+
+  // ---------- 图文卡：保存为图片（SVG foreignObject → canvas → PNG，3×=1440×1920） ----------
+  $("cardSave").addEventListener("click", function () {
+    var card = $("cardStage").querySelector(".c-card");
+    if (!card) return;
+    $("cardSave").disabled = true;
+    $("cardSaveStatus").textContent = t("status.gen");
+    captureCard(card, 3).then(function (url) {
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "plan_card.png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      $("cardSaveStatus").textContent = t("status.ok");
+    }).catch(function (e) {
+      $("cardSaveStatus").textContent = tf("status.fail", {msg: e.message});
+    }).finally(function () { $("cardSave").disabled = false; });
+  });
+  function captureCard(el, scale) {
+    return new Promise(function (resolve, reject) {
+      var w = 480, h = el.offsetHeight || 640;
+      var clone = el.cloneNode(true);
+      var body = new XMLSerializer().serializeToString(clone);
+      var styleText = "";
+      var styles = document.querySelectorAll("style");
+      for (var s = 0; s < styles.length; s++) styleText += styles[s].textContent;
+      styleText = styleText.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '">' +
+        "<style>" + styleText + "</style>" +
+        '<foreignObject width="100%" height="100%">' +
+        '<div xmlns="http://www.w3.org/1999/xhtml">' + body + "</div></foreignObject></svg>";
+      var img = new Image();
+      img.onload = function () {
+        var canvas = document.createElement("canvas");
+        canvas.width = w * scale;
+        canvas.height = h * scale;
+        var ctx = canvas.getContext("2d");
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = function (e) { reject(e); };
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    });
+  }
+
+  // ---------- 顶部导航：点击 / 滚动时同步当前区块高亮 ----------
+  (function initNavSpy() {
+    var navLinks = document.querySelectorAll(".h-nav a[data-nav]");
+    function setActive(name) {
+      for (var i = 0; i < navLinks.length; i++) {
+        var on = navLinks[i].getAttribute("data-nav") === name;
+        navLinks[i].classList.toggle("on", on);
+        if (on) navLinks[i].setAttribute("aria-current", "location");
+        else navLinks[i].removeAttribute("aria-current");
+      }
+    }
+    function syncNav() {
+      var sheet = document.getElementById("dataSheet");
+      if (!sheet) return;
+      setActive(sheet.getBoundingClientRect().top <= 120 ? "dataSheet" : "hero");
+    }
+    for (var i = 0; i < navLinks.length; i++) {
+      navLinks[i].addEventListener("click", function () {
+        setActive(this.getAttribute("data-nav"));
+      });
+    }
+    window.addEventListener("scroll", syncNav, { passive: true });
+    window.addEventListener("hashchange", syncNav);
+    syncNav();
+  })();
+
+  // 从报告页等外部入口带 hash 返回时，等数据渲染完再定位；避免榜单渲染把目标位置顶走
+  function scrollToHashTarget() {
+    var id = location.hash.slice(1);
+    if (!id) return;
+    try { id = decodeURIComponent(id); } catch (e) {}
+    var target = document.getElementById(id);
+    if (!target) return;
+    setTimeout(function () { target.scrollIntoView({ block: "start" }); }, 0);
+  }
+
+  // ---------- 初始化 ----------
+  load(); loadMeta(); loadTpls();
+})();
+</script>
+</body>
+</html>

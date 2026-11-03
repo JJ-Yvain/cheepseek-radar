@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="color-scheme" content="light dark">
+<title>海报 · CheepSeek Radar</title>
+<script>
+/* 语言偏好：与监控台共用 csr_lang */
+  (function () {
+    try {
+      var v = localStorage.getItem("csr_lang");
+      if (v !== "zh" && v !== "en") v = ((navigator.language || "en").toLowerCase().indexOf("zh") === 0) ? "zh" : "en";
+      window.__LANG = v;
+    } catch (e) { window.__LANG = "zh"; }
+  })();
+</script>
+<script>
+/* 主题偏好预读：localStorage csr_theme（light/dark/system）> system；越早执行越少闪烁 */
+  (function () {
+    var v = "system";
+    try { v = localStorage.getItem("csr_theme") || "system"; } catch (e) {}
+    if (v !== "light" && v !== "dark" && v !== "system") v = "system";
+    var eff = v === "system" ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : v;
+    var h = document.documentElement;
+    h.setAttribute("data-theme", eff);
+    h.setAttribute("data-theme-pref", v);
+    h.style.colorScheme = eff;
+    if (v === "system") h.setAttribute("data-theme-sys", matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  })();
+</script>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --serif: Georgia, "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", serif;
+    --serif-bold: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", Georgia, serif;
+    --sans: "Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    /* 与监控台同一色系：青铜 BRONZE */
+    --ink: #221f19; --ink-2: #3f3930; --muted: #7b7361; --muted-2: #9a9284;
+    --line: #d6cbb3; --line-soft: #e7dfd0; --line-deep: #c2b69f;
+    --paper: #faf8f2; --band: #f3efe4; --warm: #efe4cd; --bar: #e9e2d1;
+    --accent: #7d5c2c; --accent-hi: #8f6a34; --accent2: #3f5d55;
+    /* 语义 token（主题系统）：page-bg=页面外底色；tools-bg=底部工具条半透明底；
+       on-accent=--accent 底上的文字 */
+    --page-bg: #e4dfd2;
+    --tools-bg: rgba(250, 248, 242, .94);
+    --on-accent: #ffffff;
+    color-scheme: light;
+  }
+  /* ===== 深色主题：暖炭底 + 亮铜金（海报画布钉浅色，仅页面底与工具条随主题） ===== */
+  html[data-theme="dark"] {
+    --ink: #ece5d6; --ink-2: #d5cbb8; --muted: #a89d87; --muted-2: #857b68;
+    --line: #453d2e; --line-soft: #352f24; --line-deep: #574d38;
+    --paper: #211d16; --band: #292319; --warm: #33291a; --bar: #3b3425;
+    --accent: #c9a25e; --accent-hi: #d9b674; --accent2: #8fb3a8;
+    --page-bg: #171410;
+    --tools-bg: rgba(23, 20, 16, .92);
+    --on-accent: #241d10;
+    color-scheme: dark;
+  }
+  body {
+    background: var(--page-bg); font-family: var(--serif); color: var(--ink);
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    padding: 28px 16px 72px; -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============ 海报画布（3:4 = 720×960，导出 2× = 1440×1920） ============ */
+  .poster {
+    width: 720px; height: 960px; flex: none;
+    background: var(--paper); border: 1px solid var(--line);
+    box-shadow: 0 6px 30px rgba(0,0,0,0.22);
+    display: flex; flex-direction: column; overflow: hidden; position: relative;
+    /* 导出画布钉浅色：深色下导出 PNG 仍为浅色版式。必须用类选择器在元素上重声明
+       变量——capture 克隆画布时无 html[data-theme]，类选择器在克隆环境依然命中 */
+    --ink: #221f19; --ink-2: #3f3930; --muted: #7b7361; --muted-2: #9a9284;
+    --line: #d6cbb3; --line-soft: #e7dfd0; --line-deep: #c2b69f;
+    --paper: #faf8f2; --band: #f3efe4; --warm: #efe4cd; --bar: #e9e2d1;
+    --accent: #7d5c2c; --accent-hi: #8f6a34; --accent2: #3f5d55;
+    --page-bg: #e4dfd2;
+    --tools-bg: rgba(250, 248, 242, .94);
+    --on-accent: #ffffff;
+  }
+
+  /* 顶部：栏目条 */
+  .p-top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 17px 44px 14px; border-bottom: 1px solid var(--line);
+    font-family: var(--sans); font-size: 10.5px; letter-spacing: 3px;
+    color: var(--muted-2); text-transform: uppercase;
+  }
+  .p-top .rt { letter-spacing: 1px; text-transform: none; font-size: 11px; }
+
+  /* 主体 */
+  .p-body { flex: 1; padding: 84px 44px 0; display: flex; flex-direction: column; justify-content: center; position: relative; min-height: 0; }
+
+  /* 大标题：艺术化处理——极端字号对比 + 关键词强调 + 竖线装饰 */
+  .p-kicker {
+    font-family: var(--sans); font-size: 11px; letter-spacing: 4px;
+    color: var(--accent); text-transform: uppercase; margin-bottom: 22px;
+  }
+  .p-title { font-family: var(--serif-bold); font-weight: 900; line-height: 1.06; letter-spacing: 1px; }
+  .p-title .l1 { display: block; font-size: 68px; }
+  .p-title .l1 em { font-style: normal; color: var(--accent); }
+  .p-title .l2 { display: block; font-size: 68px; margin-top: 4px; white-space: nowrap; }
+  .p-title .l3 {
+    display: block; font-size: 42px; margin-top: 24px; letter-spacing: 3px;
+    color: var(--accent); font-weight: 900;
+  }
+  .p-title .l3 small { font-size: 26px; letter-spacing: 1px; color: var(--ink-2); font-weight: 700; }
+
+  /* 分隔：发丝线 + 竖排装饰字 */
+  .p-rule { display: flex; align-items: center; gap: 14px; margin: 24px 0 0; }
+  .p-rule .ln { flex: 1; height: 1px; background: var(--line-deep); }
+  .p-rule .deco {
+    font-family: var(--sans); font-size: 9.5px; letter-spacing: 3px;
+    color: var(--muted-2); text-transform: uppercase; flex: none;
+  }
+
+  /* 背景装饰：巨大的空心数字（很淡，作为版面肌理） */
+  .p-wm {
+    position: absolute; right: -14px; top: 158px; z-index: 0;
+    font-family: var(--serif-bold); font-weight: 900; font-size: 230px; line-height: 1;
+    color: transparent; -webkit-text-stroke: 1px var(--line); opacity: .55;
+    pointer-events: none; user-select: none; letter-spacing: -8px;
+  }
+  .p-body > *:not(.p-wm) { position: relative; z-index: 1; }
+
+  /* 正文小字：尽量小但可读（12px @720 → 导出 2× 后 24px 实像素） */
+  .p-text {
+    margin: 34px 0 0; padding: 0; max-width: 100%;
+    font-size: 13.5px; line-height: 2.15; color: var(--muted); letter-spacing: .2px;
+    border-top: 1px solid var(--line-soft);
+  }
+  .p-text b { color: var(--ink-2); font-weight: 700; }
+  .p-text .hl { color: var(--accent); font-weight: 700; }
+
+  /* 底部：数据锚点 + 落款 */
+  .p-foot { margin-top: auto; padding: 22px 44px 16px; flex: none; }
+  .p-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--line-deep); border-bottom: 1px solid var(--line-deep);
+    padding: 11px 0; margin-bottom: 14px;
+  }
+  .p-stats .st { text-align: center; }
+  .p-stats .st + .st { border-left: 1px solid var(--line); }
+  .p-stats .st b { display: block; font-family: var(--serif-bold); font-weight: 900; font-size: 20px; line-height: 1.15; }
+  .p-stats .st.mid b { color: var(--accent); }
+  .p-stats .st i { font-style: normal; font-family: var(--sans); font-size: 9px; letter-spacing: 1.6px; color: var(--muted-2); }
+  .p-sign {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-family: var(--sans); font-size: 10px; color: var(--muted-2); letter-spacing: .5px;
+  }
+  .p-sign .u { color: var(--accent); letter-spacing: 1px; }
+
+  /* ============ 工具条（不参与导出） ============ */
+  .tools {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    padding: 12px; background: var(--tools-bg, rgba(250,248,242,.94));
+    border-top: 1px solid var(--line); backdrop-filter: blur(6px);
+    font-family: var(--sans);
+  }
+  .tools button {
+    font-family: var(--sans); font-size: 12px; letter-spacing: .5px;
+    background: var(--accent); color: var(--on-accent); border: none; padding: 8px 20px; cursor: pointer;
+  }
+  .tools button:hover { background: var(--accent-hi); }
+  .tools button:disabled { opacity: .5; cursor: default; }
+  .tools .hint { font-size: 11px; color: var(--muted); }
+  .tools .ok { font-size: 11px; color: var(--accent2); }
+  .tools .sw-group { display: inline-flex; align-items: center; border: 1px solid var(--line); background: var(--paper); }
+  .tools .sw-group button { background: none; color: var(--muted); padding: 4px 10px; font-size: 11px; }
+  .tools .sw-group button + button { border-left: 1px solid var(--line-soft); }
+  .tools .sw-group button.on { background: var(--accent); color: var(--on-accent); }
+  .tools .sw-group button:not(.on):hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="poster" id="poster">
+  <div class="p-top">
+    <span id="pBrand" data-i18n-html="p.brand">模型套餐性价比 · CheepSeek Radar</span>
+    <span class="rt" data-i18n="p.rt">2026-11 · 榜单速览</span>
+  </div>
+
+  <div class="p-body">
+    <div class="p-wm">01</div>
+    <div class="p-kicker" data-i18n="p.kicker">Flash 级 · 力工档</div>
+    <div class="p-title">
+      <span class="l1"><em>Flash</em> <span data-i18n="p.l1">力工级别</span></span>
+      <span class="l2"><span data-i18n="p.l2">Coding Plan 盘点</span></span>
+      <span class="l3"><span data-i18n="p.l3">哪家性价比高？</span></span>
+    </div>
+    <div class="p-rule"><span class="deco" data-i18n="p.deco">多家渠道 · 统一口径</span><span class="ln"></span></div>
+    <p class="p-text" data-i18n-html="p.text">
+      现在 AI 变化快啊，光是 <b>DeepSeek</b> 自己 Flash 从 <b>DeepSeek-V4-Flash-0731</b>
+      迭代到了 <span class="hl">10 月 17 日的 DeepSeek-V4.1-Flash-1017</span>
+      也就花了一个多月，现在 AI 各大厂发版是越来越快了，不过这也是好事啊。
+    </p>
+  </div>
+
+  <div class="p-foot">
+    <div class="p-stats">
+      <div class="st"><b>4</b><i data-i18n="p.platforms">平台</i></div>
+      <div class="st mid"><b>3</b><i data-i18n="p.models">模型</i></div>
+      <div class="st"><b>15</b><i data-i18n="p.snapshots">快照</i></div>
+    </div>
+    <div class="p-sign">
+      <span data-i18n="p.sign">每 1 亿 Token 实际月费口径 · 持续巡检中</span>
+      <span class="u" data-i18n="p.cta">↓ 完整榜单见正文</span>
+    </div>
+  </div>
+</div>
+
+<div class="tools">
+  <button id="btnSave" data-i18n="p.saveBtn">保存为图片（1440×1920）</button>
+  <span class="hint" data-i18n="p.hint">3:4 竖版 · 可直接作自媒体封面</span>
+  <span class="ok" id="saveMsg"></span>
+  <span class="sw-group">
+    <button type="button" id="langBtn" title="切换语言 / Switch language" aria-label="切换语言 / Switch language">EN</button>
+  </span>
+  <span class="sw-group">
+    <button type="button" id="themeBtn" title="主题：浅色 → 深色 → 跟随系统 / Theme: light → dark → system" aria-label="切换主题 / Switch theme">☀</button>
+  </span>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ===== i18n（与监控台共用 localStorage csr_lang） ===== */
+  var I18N = {
+    zh: {
+      "doc.title": "海报 · CheepSeek Radar",
+      "p.brand": "模型套餐性价比",
+      "p.rt": "2026-11 · 榜单速览",
+      "p.kicker": "Flash 级 · 力工档",
+      "p.l1": "力工级别",
+      "p.l2": "Coding Plan 盘点",
+      "p.l3": "哪家性价比高？",
+      "p.deco": "多家渠道 · 统一口径",
+      "p.text": '现在 AI 变化快啊，光是 <b>DeepSeek</b> 自己 Flash 从 <b>DeepSeek-V4-Flash-0731</b> 迭代到了 <span class="hl">10 月 17 日的 DeepSeek-V4.1-Flash-1017</span> 也就花了一个多月，现在 AI 各大厂发版是越来越快了，不过这也是好事啊。',
+      "p.platforms": "平台",
+      "p.models": "模型",
+      "p.snapshots": "快照",
+      "p.sign": "每 1 亿 Token 实际月费口径 · 持续巡检中",
+      "p.cta": "↓ 完整榜单见正文",
+      "p.saveBtn": "保存为图片（1440×1920）",
+      "p.hint": "3:4 竖版 · 可直接作自媒体封面",
+      "p.saving": "生成中…",
+      "p.saved": "已保存 ✓",
+      "p.saveFail": "失败：{msg}"
+    },
+    en: {
+      "doc.title": "Poster · CheepSeek Radar",
+      "p.brand": "Coding-Plan Value",
+      "p.rt": "2026-11 · Ranking at a glance",
+      "p.kicker": "Flash tier · workhorse class",
+      "p.l1": "workhorse class",
+      "p.l2": "A Coding Plan survey",
+      "p.l3": "Who wins on value?",
+      "p.deco": "Multiple channels · one basis",
+      "p.text": 'AI is moving fast: DeepSeek\u2019s own Flash line went from <b>DeepSeek-V4-Flash-0731</b> to <span class="hl">DeepSeek-V4.1-Flash-1017 (Oct 17)</span> in barely a month. Vendors are shipping faster than ever \u2014 good news for buyers.',
+      "p.platforms": "Platforms",
+      "p.models": "Models",
+      "p.snapshots": "Snapshots",
+      "p.sign": "Actual monthly-fee basis per 100M tokens · continuously tracked",
+      "p.cta": "↓ Full ranking in the article",
+      "p.saveBtn": "Save as image (1440×1920)",
+      "p.hint": "3:4 vertical · ready as a social cover",
+      "p.saving": "Rendering…",
+      "p.saved": "Saved ✓",
+      "p.saveFail": "Failed: {msg}"
+    }
+  };
+
+  var LANG = window.__LANG || "zh";
+  function t(key) {
+    var d = I18N[LANG] || I18N.zh;
+    var s = (key in d) ? d[key] : I18N.zh[key];
+    return s === undefined ? key : s;
+  }
+  function tf(key, vars) {
+    var s = t(key);
+    if (vars) for (var k in vars) s = s.split("{" + k + "}").join(vars[k]);
+    return s;
+  }
+  function applyStaticText() {
+    var i, nodes;
+    nodes = document.querySelectorAll("[data-i18n]");
+    for (i = 0; i < nodes.length; i++) nodes[i].textContent = t(nodes[i].getAttribute("data-i18n"));
+    nodes = document.querySelectorAll("[data-i18n-html]");
+    for (i = 0; i < nodes.length; i++) nodes[i].innerHTML = t(nodes[i].getAttribute("data-i18n-html"));
+    nodes = document.querySelectorAll("[data-i18n-ph]");
+    for (i = 0; i < nodes.length; i++) nodes[i].setAttribute("placeholder", t(nodes[i].getAttribute("data-i18n-ph")));
+    nodes = document.querySelectorAll("[data-i18n-title]");
+    for (i = 0; i < nodes.length; i++) nodes[i].setAttribute("title", t(nodes[i].getAttribute("data-i18n-title")));
+    nodes = document.querySelectorAll("[data-i18n-aria]");
+    for (i = 0; i < nodes.length; i++) nodes[i].setAttribute("aria-label", t(nodes[i].getAttribute("data-i18n-aria")));
+  }
+
+  // 导出图署名：默认产品名；改成个人 IP / 团队名即可
+  var SIGNATURE = 'CheepSeek Radar';
+  function updateBrand() {
+    $("pBrand").textContent = t("p.brand") + " · " + SIGNATURE;
+  }
+  function setLang(lang) {
+    LANG = lang;
+    try { localStorage.setItem("csr_lang", lang); } catch (e) {}
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    document.title = t("doc.title");
+    applyStaticText();
+    updateBrand();
+  }
+  function syncLangSw() {
+    // 单击切换式：按钮上显示「目标语言」
+    var b = document.getElementById("langBtn");
+    if (b) b.textContent = (LANG === "zh") ? "EN" : "中文";
+  }
+  document.getElementById("langBtn").addEventListener("click", function () {
+    setLang(LANG === "zh" ? "en" : "zh");
+    syncLangSw();
+  });
+
+  /* ===== 主题（Light / Dark / System，与监控台共用 csr_theme） ===== */
+  function applyTheme() {
+    var pref = "system";
+    try { pref = localStorage.getItem("csr_theme") || "system"; } catch (e) {}
+    if (pref !== "light" && pref !== "dark" && pref !== "system") pref = "system";
+    var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    var eff = pref === "system" ? (mq && mq.matches ? "dark" : "light") : pref;
+    var h = document.documentElement;
+    h.setAttribute("data-theme", eff);
+    h.setAttribute("data-theme-pref", pref);
+    h.style.colorScheme = eff;
+    var b = document.getElementById("themeBtn");
+    if (b) b.textContent = (pref === "dark") ? "☾" : (pref === "system" ? "◐" : "☀");
+  }
+  document.getElementById("themeBtn").addEventListener("click", function () {
+    var pref = "system";
+    try { pref = localStorage.getItem("csr_theme") || "system"; } catch (e) {}
+    if (pref !== "light" && pref !== "dark" && pref !== "system") pref = "system";
+    var next = (pref === "light") ? "dark" : (pref === "dark" ? "system" : "light");
+    try { localStorage.setItem("csr_theme", next); } catch (err) {}
+    applyTheme();
+  });
+  // 跟随系统：pref 为 system 时，系统深浅切换即时生效
+  (function () {
+    var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    if (!mq) return;
+    var onChange = function () { applyTheme(); };
+    if (mq.addEventListener) mq.addEventListener("change", onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+  })();
+
+  // SVG foreignObject → canvas → PNG（与监控台同一套零依赖导出）
+  function capture(el, scale) {
+    return new Promise(function (resolve, reject) {
+      var w = el.offsetWidth || 720, h = el.offsetHeight || 960;
+      var clone = el.cloneNode(true);
+      var body = new XMLSerializer().serializeToString(clone);
+      var styleText = "";
+      var styles = document.querySelectorAll("style");
+      for (var s = 0; s < styles.length; s++) styleText += styles[s].textContent;
+      styleText = styleText.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '">' +
+        "<style>" + styleText + "</style>" +
+        '<foreignObject width="100%" height="100%">' +
+        '<div xmlns="http://www.w3.org/1999/xhtml">' + body + "</div></foreignObject></svg>";
+      var img = new Image();
+      img.onload = function () {
+        var canvas = document.createElement("canvas");
+        canvas.width = w * scale; canvas.height = h * scale;
+        var ctx = canvas.getContext("2d");
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = function (e) { reject(e); };
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    });
+  }
+
+  $("btnSave").addEventListener("click", function () {
+    $("btnSave").disabled = true;
+    $("saveMsg").textContent = t("p.saving");
+    capture($("poster"), 2).then(function (url) {
+      var a = document.createElement("a");
+      a.href = url; a.download = "flash-coding-plan-poster.png";
+      document.body.appendChild(a); a.click(); a.remove();
+      $("saveMsg").textContent = t("p.saved");
+    }).catch(function (e) {
+      $("saveMsg").textContent = tf("p.saveFail", { msg: e.message });
+    }).finally(function () { $("btnSave").disabled = false; });
+  });
+
+  // 初始应用语言与主题
+  document.documentElement.lang = LANG === "zh" ? "zh-CN" : "en";
+  document.title = t("doc.title");
+  applyStaticText();
+  updateBrand();
+  syncLangSw();
+  applyTheme();
+})();
+</script>
+</body>
+</html>

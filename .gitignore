@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# 本地运行产物
+tmp/
+*.log
+*.db-journal
+*.db-wal
+*.db-shm
+
+# 报告构建产物（由 reports/build.py 生成）
+reports/dist/
+
+# 数据库备份 / 回退点（保留在本机，不随仓库分发）
+monitor/*.bak-*
+monitor/*.bak
+archive/回退点历史/*.bak-*
+
+# 报告源文件策略：默认全部不进仓库（草稿不得公开）；报告经用户确认发布后，在此文件中
+# 为该文件加一行豁免（!reports/posts/<name>.md）并提交，方进入公开仓库与公开构建
+reports/posts/*
+
+# 本地 SQLite 数据库（公开站点只用 site/data/*.json；plans.db 保留在本机）
+monitor/plans.db
+
+# 内部开发资料（不公开）
+HANDOFF.md
+archive/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp

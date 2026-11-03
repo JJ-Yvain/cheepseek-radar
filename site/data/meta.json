@@ -1,0 +1,1 @@
+{"platforms": ["Command Code", "Ollama", "OpenCode", "官方API"], "models": ["deepseek-v4-flash-0731", "deepseek-v4.1-flash", "deepseek-v4.1-flash-1017"], "plans": ["GOAT", "Go", "Pro", "按量"], "plans_by_platform": {"Ollama": ["Pro"], "OpenCode": ["Go"], "Command Code": ["GOAT"], "官方API": ["按量"]}}
